@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria.Shopee · Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --ink: #14110F;
+  --paper: #FBF8F3;
+  --paper-2: #F1EBE0;
+  --line: #DCD3C2;
+  --moss: #3F5B43;
+  --moss-deep: #243828;
+  --rust: #C2552F;
+  --rust-deep: #963F22;
+  --gold: #B6862C;
+  --red-flag: #A3331F;
+  --green-flag: #2F6B47;
+  --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --serif: 'Source Serif Pro', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+html,body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
+body{padding-bottom:80px;}
+::selection{background:var(--gold); color:var(--paper);}
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+
+header.top{
+  border-bottom:1px solid var(--line); padding:22px 0 18px; position:sticky; top:0; z-index:50;
+  background:rgba(251,248,243,0.92); backdrop-filter: blur(8px);
+}
+header.top .wrap{display:flex; align-items:baseline; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+.brand{display:flex; align-items:baseline; gap:12px; cursor:pointer; transition:opacity .2s ease;}
+.brand .mark{font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:-0.01em;}
+.brand .mark span{color:var(--rust);}
+.brand .tag{font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#6B6557;}
+
+nav.top-nav{display:flex; align-items:center; gap:26px; font-family:var(--mono); font-size:12.5px; color:#55503F;}
+nav.top-nav a{text-decoration:none; cursor:pointer; transition:color .2s;}
+nav.top-nav a:hover{color:var(--rust);}
+nav.top-nav .nav-login-btn{
+  border:1px solid var(--line); padding:7px 16px; border-radius:100px; color:var(--moss-deep); font-weight:600;
+  cursor:pointer; background:none; transition:all .2s; font-family:var(--mono); font-size:12.5px;
+}
+nav.top-nav .nav-login-btn:hover{border-color:var(--moss); background:var(--paper-2);}
+
+.hero{padding:70px 0 50px; text-align:center;}
+.hero .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--moss-deep); margin-bottom:18px;}
+.hero h1{font-family:var(--serif); font-weight:700; font-size:46px; line-height:1.1; letter-spacing:-0.015em; max-width:780px; margin:0 auto 20px;}
+.hero h1 em{font-style:italic; color:var(--rust); font-weight:600;}
+.hero p.lede{font-size:17px; line-height:1.6; color:#4A453A; max-width:580px; margin:0 auto;}
+
+.features{padding:50px 0 80px;}
+.features-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-top:40px;}
+
+.feature-card{padding:28px; background:var(--paper-2); border:1px solid var(--line); border-radius:4px; cursor:pointer; transition:all .2s ease;}
+.feature-card:hover{border-color:var(--rust); box-shadow:0 8px 16px rgba(194,85,47,0.1); transform:translateY(-2px);}
+.feature-card .icon{font-size:40px; margin-bottom:16px;}
+.feature-card h3{font-family:var(--serif); font-size:20px; font-weight:700; margin-bottom:10px;}
+.feature-card p{font-size:14px; color:#6B6557; line-height:1.5;}
+
+footer{border-top:1px solid var(--line); padding:40px 0 30px; margin-top:80px; text-align:center; font-size:12px; color:#8C8570; font-family:var(--mono);}
+
+@media (max-width:900px){.features-grid{grid-template-columns:1fr;} .hero h1{font-size:32px;}}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">Auditoria<span>.</span>Shopee</div>
+      <div class="tag">Dashboard</div>
+    </div>
+    <nav class="top-nav">
+      <a href="/">Dashboard</a>
+      <a href="/zpl-converter.html">🏷️ ZPL</a>
+      <a href="/calculadoras-reais.html">Calc</a>
+      <a href="/auditoria_shopee.html">Audit</a>
+      <a href="/perfil.html">Perfil</a>
+      <a href="/login.html" class="nav-login-btn">Entrar</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">Bem-vindo</div>
+    <h1>Suas <em>Ferramentas Shopee</em></h1>
+    <p class="lede">Acesso rápido a tudo que você precisa para gerenciar, calcular e converter.</p>
+  </div>
+</section>
+
+<section class="features">
+  <div class="wrap">
+    <div class="features-grid">
+      
+      <div class="feature-card" onclick="location.href='/zpl-converter.html'">
+        <div class="icon">🏷️</div>
+        <h3>ZPL Converter</h3>
+        <p>Converta códigos ZPL para PNG, PDF ou JPG. Perfeito para etiquetas.</p>
+      </div>
+
+      <div class="feature-card" onclick="location.href='/calculadoras-reais.html'">
+        <div class="icon">📊</div>
+        <h3>Calculadoras</h3>
+        <p>Margens, lucro, análise de vendas e métricas Shopee.</p>
+      </div>
+
+      <div class="feature-card" onclick="location.href='/auditoria_shopee.html'">
+        <div class="icon">🔍</div>
+        <h3>Auditoria</h3>
+        <p>Analise sua loja e performance em detalhes.</p>
+      </div>
+
+      <div class="feature-card" onclick="location.href='/perfil.html'">
+        <div class="icon">👤</div>
+        <h3>Perfil</h3>
+        <p>Gerencie suas configurações e preferências.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 Auditoria.Shopee</p>
+  </div>
+</footer>
+
+</body>
+</html>

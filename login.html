@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Entrar · Auditoria.Shopee</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --ink: #14110F; --paper: #FBF8F3; --paper-2: #F1EBE0; --line: #DCD3C2;
+  --moss: #3F5B43; --moss-deep: #243828; --rust: #C2552F; --rust-deep: #963F22;
+  --gold: #B6862C; --red-flag: #A3331F; --green-flag: #2F6B47;
+  --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --serif: 'Source Serif Pro', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased; min-height:100vh;}
+a{color:inherit;}
+
+.wrap-auth{max-width:440px; margin:0 auto; padding:60px 28px 40px;}
+.brand{display:flex; align-items:baseline; gap:12px; justify-content:center; margin-bottom:8px; cursor:pointer; transition:opacity .2s ease;}
+.brand:hover{opacity:0.8;}
+.brand .mark{font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:-0.01em;}
+.brand .mark span{color:var(--rust);}
+.tag-center{font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#6B6557; text-align:center; margin-bottom:44px;}
+
+.auth-card{background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:38px 36px;}
+.auth-card h1{font-family:var(--serif); font-size:26px; font-weight:700; margin-bottom:8px; letter-spacing:-0.01em;}
+.auth-card .sub{font-size:13.5px; color:#766F5E; margin-bottom:28px; line-height:1.5;}
+
+.field{margin-bottom:18px;}
+.field label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.03em; text-transform:uppercase; color:#766F5E; margin-bottom:7px;}
+.field input{
+  width:100%; font-family:var(--sans); font-size:14.5px; padding:12px 14px; border:1px solid var(--line);
+  border-radius:4px; background:var(--paper-2); color:var(--ink);
+}
+.field input:focus{outline:none; border-color:var(--moss); background:var(--paper);}
+.field-foot{display:flex; justify-content:flex-end; margin-top:8px;}
+.field-foot a{font-size:12px; color:#766F5E; text-decoration:underline;}
+.field-foot a:hover{color:var(--rust);}
+
+.btn-primary{
+  width:100%; font-family:var(--sans); font-weight:700; font-size:14.5px; background:var(--moss-deep); color:var(--paper);
+  border:none; padding:14px; border-radius:4px; cursor:pointer; transition:background .15s ease; margin-top:8px;
+}
+.btn-primary:hover:not(:disabled){background:var(--rust);}
+.btn-primary:disabled{background:#C9C3B3; cursor:not-allowed;}
+
+.auth-footer{text-align:center; margin-top:22px; font-size:13px; color:#766F5E;}
+.auth-footer a{color:var(--rust); font-weight:600; text-decoration:none;}
+.auth-footer a:hover{text-decoration:underline;}
+
+.oauth-divider{display:flex; align-items:center; gap:14px; margin:22px 0; font-family:var(--mono); font-size:11px; color:#A39C88; text-transform:uppercase;}
+.oauth-divider::before, .oauth-divider::after{content:''; flex:1; height:1px; background:var(--line);}
+
+.btn-google{
+  width:100%; display:flex; align-items:center; justify-content:center; gap:10px;
+  font-family:var(--sans); font-weight:600; font-size:14px; background:var(--paper); color:var(--ink);
+  border:1px solid var(--line); padding:12px; border-radius:4px; cursor:pointer; transition:all .15s ease;
+}
+.btn-google:hover{border-color:var(--moss); background:var(--paper-2);}
+.btn-google:disabled{opacity:0.5; cursor:not-allowed;}
+
+.alert-box{padding:13px 16px; border-radius:4px; font-size:13px; line-height:1.5; margin-bottom:18px; display:none;}
+.alert-box.show{display:block;}
+.alert-box.error{background:#F3DCD4; color:var(--red-flag); border-left:3px solid var(--red-flag);}
+.alert-box.success{background:#E2EFE2; color:var(--green-flag); border-left:3px solid var(--green-flag);}
+.alert-box.warn{background:#F7EAD8; color:#8A6512; border-left:3px solid var(--gold);}
+
+.config-warning{
+  background:#F3DCD4; border:1px solid var(--red-flag); color:var(--red-flag); padding:14px 16px; border-radius:4px;
+  font-family:var(--mono); font-size:12px; line-height:1.6; margin-bottom:24px; display:none;
+}
+.config-warning.show{display:block;}
+
+.resend-link{font-size:12.5px; color:var(--moss-deep); text-decoration:underline; cursor:pointer; background:none; border:none; padding:0; margin-top:6px; display:none;}
+.resend-link.show{display:inline;}
+</style>
+</head>
+<body>
+
+<div class="wrap-auth">
+  <a href="index.html" class="brand" style="text-decoration:none;">
+    <div class="mark">Auditoria<span>.</span>Shopee</div>
+  </a>
+  <div class="tag-center">Reconciliação financeira completa</div>
+
+  <div id="configWarning" class="config-warning">
+    ⚠ O sistema de contas ainda não foi configurado. Edite o arquivo <code>auth-config.js</code> com sua URL e chave do Supabase.
+  </div>
+
+  <div class="auth-card">
+    <h1>Entrar</h1>
+    <p class="sub">Acesse sua conta para ver seu plano e suas configurações.</p>
+
+    <div id="alertBox" class="alert-box"></div>
+
+    <form id="formLogin">
+      <div class="field">
+        <label>E-mail</label>
+        <input type="email" id="email" required placeholder="seu@email.com" autocomplete="email">
+      </div>
+      <div class="field">
+        <label>Senha</label>
+        <input type="password" id="senha" required placeholder="sua senha" autocomplete="current-password">
+        <div class="field-foot"><span style="color:#999; font-size:13px;">Entre em contato para recuperar senha</span></div>
+      </div>
+      <button type="submit" class="btn-primary" id="btnSubmit">Entrar</button>
+      <button type="button" class="resend-link" id="btnReenviar">Reenviar e-mail de confirmação</button>
+    </form>
+
+    <div class="oauth-divider"><span>ou</span></div>
+    <button type="button" class="btn-google" id="btnGoogle">
+      <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg">
+        <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.08-1.8 2.72v2.26h2.91c1.7-1.57 2.69-3.88 2.69-6.62z"/>
+        <path fill="#34A853" d="M9 18c2.43 0 4.47-.81 5.96-2.18l-2.91-2.26c-.81.54-1.84.86-3.05.86-2.35 0-4.34-1.59-5.05-3.72H.96v2.33C2.44 15.98 5.48 18 9 18z"/>
+        <path fill="#FBBC05" d="M3.95 10.7c-.18-.54-.28-1.11-.28-1.7s.1-1.16.28-1.7V4.97H.96A8.99 8.99 0 0 0 0 9c0 1.45.35 2.83.96 4.03l2.99-2.33z"/>
+        <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l2.99 2.33C4.66 5.17 6.65 3.58 9 3.58z"/>
+      </svg>
+      Entrar com o Google
+    </button>
+
+    <div class="auth-footer">Entre em contato para criar conta</div>
+  </div>
+</div>
+
+<script src="auth-config.js"></script>
+<script src="auth-utils.js"></script>
+<script>
+if (!AuthUtils.configurado()) {
+  document.getElementById('configWarning').classList.add('show');
+  document.getElementById('btnSubmit').disabled = true;
+}
+
+function getNextUrl() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('next') || 'auditoria_shopee.html';
+}
+
+// Se a pessoa chegou aqui por um link de confirmação de e-mail (ou redefinição de senha),
+// o supabase-js já processa o token presente na URL automaticamente ao carregar a página.
+// Se isso resultar numa sessão válida, levamos direto para o perfil.
+async function checarSessaoVindaPorEmail() {
+  if (!AuthUtils.configurado()) return;
+  const hash = window.location.hash;
+  if (!hash.includes('access_token') && !hash.includes('error')) return; // não veio de um link de e-mail
+
+  if (hash.includes('error=')) {
+    const params = new URLSearchParams(hash.slice(1));
+    const desc = params.get('error_description');
+    const TRADUCOES = {
+      'Email link is invalid or has expired': 'Este link de confirmação é antigo ou já foi usado.'
+    };
+    if (desc) {
+      const descLimpa = decodeURIComponent(desc.replace(/\+/g, ' '));
+      const mensagem = TRADUCOES[descLimpa] || descLimpa;
+      showAlert(mensagem + ' Solicite um novo cadastro ou um novo link de recuperação de senha.', 'error');
+    }
+    return;
+  }
+
+  // dá um instante para o supabase-js processar o token do hash antes de checar a sessão
+  await new Promise(r => setTimeout(r, 300));
+  const session = await AuthUtils.getSessaoAtual();
+  if (session) {
+    window.location.href = getNextUrl();
+  }
+}
+checarSessaoVindaPorEmail();
+
+function showAlert(msg, type) {
+  const box = document.getElementById('alertBox');
+  box.textContent = msg;
+  box.className = `alert-box show ${type}`;
+}
+
+let ultimoEmailTentado = '';
+
+document.getElementById('formLogin').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  if (!AuthUtils.configurado()) return;
+
+  const email = document.getElementById('email').value.trim();
+  const senha = document.getElementById('senha').value;
+  const btn = document.getElementById('btnSubmit');
+  ultimoEmailTentado = email;
+  document.getElementById('btnReenviar').classList.remove('show');
+
+  btn.disabled = true;
+  btn.textContent = 'Entrando…';
+
+  const { data, error } = await AuthUtils.login(email, senha);
+
+  btn.disabled = false;
+  btn.textContent = 'Entrar';
+
+  if (error) {
+    if (error.message && error.message.toLowerCase().includes('email not confirmed')) {
+      showAlert('Seu e-mail ainda não foi confirmado. Verifique sua caixa de entrada.', 'warn');
+      document.getElementById('btnReenviar').classList.add('show');
+    } else if (error.message && error.message.toLowerCase().includes('invalid login credentials')) {
+      showAlert('E-mail ou senha incorretos.', 'error');
+    } else {
+      showAlert('Não foi possível entrar: ' + error.message, 'error');
+    }
+    return;
+  }
+
+  window.location.href = getNextUrl();
+});
+
+document.getElementById('btnReenviar').addEventListener('click', async () => {
+  if (!ultimoEmailTentado) return;
+  const { error } = await AuthUtils.reenviarConfirmacao(ultimoEmailTentado);
+  if (error) showAlert('Não foi possível reenviar: ' + error.message, 'error');
+  else showAlert('E-mail de confirmação reenviado — confira sua caixa de entrada.', 'success');
+});
+
+document.getElementById('btnGoogle').addEventListener('click', async () => {
+  if (!AuthUtils.configurado()) return;
+  const btn = document.getElementById('btnGoogle');
+  btn.disabled = true;
+  const redirectTo = `${window.location.origin}/${getNextUrl()}`;
+  const { error } = await AuthUtils.loginComGoogle(redirectTo);
+  if (error) {
+    showAlert('Não foi possível entrar com o Google: ' + error.message, 'error');
+    btn.disabled = false;
+  }
+  // em caso de sucesso, o navegador é redirecionado para o Google automaticamente
+});
+</script>
+</body>
+</html>

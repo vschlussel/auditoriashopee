@@ -1,0 +1,2681 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Auditoria Financeira · Shopee</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.0.4/build/index.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/gh/gitbrent/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<style>
+:root{
+  --ink: #14110F;
+  --paper: #FBF8F3;
+  --paper-2: #F1EBE0;
+  --line: #DCD3C2;
+  --moss: #3F5B43;
+  --moss-deep: #243828;
+  --rust: #C2552F;
+  --rust-deep: #963F22;
+  --gold: #B6862C;
+  --red-flag: #A3331F;
+  --green-flag: #2F6B47;
+  --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --serif: 'Source Serif Pro', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+
+  /* Semáforo de 6 níveis (saúde financeira / KPIs) */
+  --s1-excelente: #1F4D2E;   /* verde escuro — excelente */
+  --s2-bom: #5C9A5C;         /* verde claro — bom */
+  --s3-regular: #C9A227;     /* amarelo — regular */
+  --s4-atencao: #D9772E;     /* laranja — precisa de atenção */
+  --s5-alerta: #B23A2E;      /* vermelho — muita atenção */
+  --s6-critico: #5C1A2E;     /* vinho — socorro, olha pra mim */
+}
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700&display=swap');
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html,body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
+body{padding-bottom:40px;}
+
+/* ===== PRINT OPTIMIZATION ===== */
+@media print {
+  * { background: transparent !important; color: #000 !important; box-shadow: none !important; text-shadow: none !important; }
+  html, body { background: white; color: black; }
+  header.top, .actions-row, .filters, .modal-overlay, .help-btn, .export-options { display: none !important; }
+  
+  .report-page { page-break-after: always; margin: 0; padding: 20px; }
+  .report-page:last-child { page-break-after: avoid; }
+  
+  .dashboard { background: white; }
+  .dash-item { page-break-inside: avoid; margin-bottom: 12px; border: 1px solid #ccc; padding: 12px; }
+  .chart-container, canvas, [class*="chart"] { display: none !important; }
+  
+  .status-badge { border: 1px solid #000; padding: 2px 4px; }
+  table { border-collapse: collapse; width: 100%; }
+  th, td { border: 1px solid #999; padding: 6px; text-align: left; }
+  
+  h1 { font-size: 18pt; margin-bottom: 10px; page-break-after: avoid; }
+  h2 { font-size: 14pt; margin-top: 12px; margin-bottom: 8px; page-break-after: avoid; }
+  
+  a { text-decoration: underline; color: #000; }
+  img { max-width: 100%; }
+}
+
+::selection{background:var(--gold); color:var(--paper);}
+
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+
+/* ===== HEADER ===== */
+header.top{
+  border-bottom:1px solid var(--line);
+  padding:22px 0 18px;
+  position:sticky; top:0; z-index:50;
+  background:rgba(251,248,243,0.92);
+  backdrop-filter: blur(8px);
+}
+header.top .wrap{display:flex; align-items:baseline; justify-content:space-between; gap:20px;}
+.brand{display:flex; align-items:baseline; gap:12px;}
+.brand .mark{
+  font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:-0.01em;
+}
+.brand .mark span{color:var(--rust);}
+.brand .tag{font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#6B6557;}
+.store-pill{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:0.03em;
+  border:1px solid var(--line); padding:6px 12px; border-radius:100px; color:#55503F;
+  display:flex; align-items:center; gap:8px;
+}
+.store-pill .dot{width:6px; height:6px; border-radius:50%; background:var(--green-flag);}
+
+.account-pill{
+  font-family:var(--mono); font-size:11.5px; display:flex; align-items:center; gap:10px; color:#55503F;
+}
+.account-plan-tag{
+  padding:3px 9px; border-radius:100px; font-weight:700; font-size:10px; text-transform:uppercase;
+  background:var(--paper-2); color:#766F5E;
+}
+.account-plan-tag.iniciante{background:#E2EFE2; color:var(--green-flag);}
+.account-plan-tag.pro{background:var(--moss-deep); color:var(--paper);}
+.account-pill a{text-decoration:underline; color:var(--rust);}
+
+.auth-loading-screen{
+  display:none; text-align:center; padding:100px 20px; font-family:var(--mono); font-size:13px; color:#8C8570;
+}
+
+.plan-switcher{display:flex; align-items:center; gap:0; border:1px solid var(--line); border-radius:100px; padding:3px; background:var(--paper-2);}
+.plan-switcher-label{font-family:var(--mono); font-size:10.5px; color:#8C8570; padding:0 8px;}
+.plan-switcher button{
+  font-family:var(--mono); font-size:11px; padding:6px 13px; border-radius:100px; border:none; background:none; cursor:pointer; color:#766F5E;
+  position:relative;
+}
+.plan-switcher button.active{background:var(--moss-deep); color:var(--paper);}
+.plan-switcher button:hover:not(.active){color:var(--rust);}
+.plan-tooltip{
+  display:none; position:absolute; top:calc(100% + 8px); left:50%; transform:translateX(-50%);
+  width:220px; background:var(--ink); color:var(--paper); padding:11px 13px; border-radius:5px;
+  font-family:var(--sans); font-size:11.5px; font-weight:400; line-height:1.5; text-align:left; z-index:90;
+  box-shadow:0 6px 18px rgba(0,0,0,0.18); white-space:normal;
+}
+.plan-tooltip::after{
+  content:''; position:absolute; bottom:100%; left:50%; transform:translateX(-50%);
+  border:6px solid transparent; border-bottom-color:var(--ink);
+}
+.plan-switcher button:hover .plan-tooltip{display:block;}
+
+/* ===== UPLOAD STAGE ===== */
+.stage{padding:64px 0 40px;}
+.stage h1{
+  font-family:var(--serif); font-weight:700; font-size:42px; line-height:1.08;
+  letter-spacing:-0.015em; max-width:760px; margin-bottom:18px;
+}
+.stage h1 em{font-style:italic; color:var(--rust); font-weight:600;}
+.stage p.lede{font-size:16.5px; line-height:1.6; color:#4A453A; max-width:600px; margin-bottom:28px;}
+
+.drop-grid{display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:28px;}
+@media (max-width: 900px){.drop-grid{grid-template-columns:repeat(2,1fr);}}
+
+.drop{
+  border:1.5px dashed var(--line); border-radius:4px; padding:22px 18px;
+  background:var(--paper-2); cursor:pointer; transition:all .15s ease;
+  position:relative; min-height:172px; display:flex; flex-direction:column; gap:10px;
+}
+.drop:hover{border-color:var(--moss); background:#ECE9DC;}
+.drop.drag-over{
+  border-color:var(--rust); border-style:solid; background:#F7EAD8;
+  box-shadow:0 0 0 3px rgba(194,85,47,0.15);
+}
+.drop.has-file{border-style:solid; border-color:var(--green-flag); background:#EAF1EA;}
+.drop.has-file::after{
+  content:"✓"; position:absolute; top:14px; right:14px; color:var(--green-flag); font-weight:700; font-size:15px;
+}
+.drop .num{font-family:var(--mono); font-size:11px; color:#8C8570; letter-spacing:0.05em;}
+.drop .label{font-family:var(--serif); font-weight:600; font-size:16.5px; margin-top:6px; line-height:1.25;}
+.drop .desc{font-size:12.5px; color:#766F5E; margin-top:8px; line-height:1.45;}
+.drop .filename{
+  font-family:var(--mono); font-size:11px; color:var(--moss-deep); margin-top:10px;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.drop input{display:none;}
+
+.help-btn{
+  font-family:var(--mono); font-size:10.5px; color:#8C8570; background:none; border:none;
+  cursor:pointer; text-decoration:underline; text-decoration-color:var(--line); padding:0; margin-top:auto;
+  text-align:left; align-self:flex-start; position:relative; z-index:2;
+}
+.help-btn:hover{color:var(--rust);}
+
+.modal-overlay{
+  position:fixed; inset:0; background:rgba(20,17,15,0.55); z-index:300;
+  display:none; align-items:center; justify-content:center; padding:24px;
+}
+.modal-box{
+  background:var(--paper); max-width:560px; width:100%; max-height:84vh; overflow-y:auto;
+  border:1px solid var(--line); padding:32px 34px; position:relative;
+}
+.modal-box h3{font-family:var(--serif); font-size:21px; font-weight:700; margin-bottom:6px;}
+.modal-box .modal-sub{font-family:var(--mono); font-size:11px; color:#8C8570; margin-bottom:22px; text-transform:uppercase; letter-spacing:0.04em;}
+.modal-box .step{display:flex; gap:14px; margin-bottom:16px; align-items:flex-start;}
+.modal-box .step .n{
+  font-family:var(--mono); font-weight:700; font-size:12px; color:var(--paper); background:var(--rust);
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px;
+}
+.modal-box .step p{font-size:14px; line-height:1.55;}
+.modal-box .step p code{background:var(--paper-2); padding:1px 6px; border-radius:3px; font-family:var(--mono); font-size:12.5px;}
+.modal-box .modal-close{
+  position:absolute; top:24px; right:28px; cursor:pointer; font-family:var(--mono); font-size:13px; color:#8C8570; background:none; border:none;
+}
+.modal-box .modal-close:hover{color:var(--rust);}
+.modal-box .modal-note{
+  margin-top:20px; padding:13px 16px; background:var(--paper-2); border-left:3px solid var(--moss); font-size:12.5px; line-height:1.5; color:#3D392E;
+}
+
+.actions-row{display:flex; align-items:center; gap:16px; flex-wrap:wrap;}
+.btn-run{
+  font-family:var(--sans); font-weight:700; font-size:15px; letter-spacing:-0.01em;
+  background:var(--moss-deep); color:var(--paper); border:none; padding:15px 30px;
+  border-radius:3px; cursor:pointer; transition:all .15s ease;
+  display:inline-flex; align-items:center; gap:10px;
+}
+.btn-run:hover:not(:disabled){background:var(--rust);}
+.btn-run:disabled{background:#C9C3B3; cursor:not-allowed; color:#8C8570;}
+.btn-secondary{
+  font-family:var(--mono); font-size:12px; color:#766F5E; background:none; border:none;
+  cursor:pointer; text-decoration:underline; text-decoration-color:var(--line);
+}
+.btn-secondary:hover{color:var(--rust);}
+
+.status-line{font-family:var(--mono); font-size:12px; color:#8C8570; margin-top:14px; min-height:18px;}
+.status-line.err{color:var(--red-flag);}
+
+/* ===== DASHBOARD ===== */
+#dashboard{display:none;}
+section.block{padding:28px 0; border-bottom:1px solid var(--line);}
+section.block:last-of-type{border-bottom:none;}
+
+.block-head{display:flex; align-items:baseline; justify-content:space-between; margin-bottom:18px; gap:20px; flex-wrap:wrap;}
+.block-head h2{
+  font-family:var(--serif); font-weight:700; font-size:26px; letter-spacing:-0.01em;
+  display:flex; align-items:baseline; gap:12px;
+}
+.block-head h2 .idx{font-family:var(--mono); font-size:13px; color:var(--rust); font-weight:500;}
+.block-head .sub{font-size:13px; color:#766F5E; max-width:420px; text-align:right; line-height:1.45;}
+
+/* KPI cards */
+.kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:1px; background:var(--line); border:1px solid var(--line); margin-bottom:8px;}
+@media (max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}}
+.kpi{background:var(--paper); padding:22px 20px;}
+.kpi .lbl{font-family:var(--mono); font-size:10.5px; letter-spacing:0.05em; text-transform:uppercase; color:#8C8570; margin-bottom:10px;}
+.kpi .val{font-family:var(--serif); font-weight:700; font-size:27px; letter-spacing:-0.01em;}
+.kpi .val.rust{color:var(--rust-deep);}
+.kpi .val.moss{color:var(--moss-deep);}
+.kpi .sub2{font-size:11.5px; color:#8C8570; margin-top:6px;}
+
+/* ===== SEMÁFORO DE 6 NÍVEIS ===== */
+.semaforo-legenda{
+  display:flex; flex-wrap:wrap; gap:8px; padding:14px 16px; background:var(--paper-2); border:1px solid var(--line);
+  margin-bottom:24px; font-family:var(--mono); font-size:10.5px;
+}
+.semaforo-legenda .item{display:flex; align-items:center; gap:6px;}
+.semaforo-legenda .dot{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+.semaforo-legenda .lbl{color:#55503F;}
+
+.s-badge{
+  display:inline-flex; align-items:center; gap:6px; padding:3px 10px; border-radius:100px;
+  font-family:var(--mono); font-size:10.5px; font-weight:600; color:var(--paper);
+}
+.s-badge .dot{width:7px; height:7px; border-radius:50%; background:var(--paper);}
+.s-badge.s1{background:var(--s1-excelente);}
+.s-badge.s2{background:var(--s2-bom);}
+.s-badge.s3{background:var(--s3-regular); color:#3D2E0A;}
+.s-badge.s3 .dot{background:#3D2E0A;}
+.s-badge.s4{background:var(--s4-atencao);}
+.s-badge.s5{background:var(--s5-alerta);}
+.s-badge.s6{background:var(--s6-critico);}
+
+.kpi.has-semaforo{border-left:4px solid var(--line); position:relative;}
+.kpi.has-semaforo.s1{border-left-color:var(--s1-excelente);}
+.kpi.has-semaforo.s2{border-left-color:var(--s2-bom);}
+.kpi.has-semaforo.s3{border-left-color:var(--s3-regular);}
+.kpi.has-semaforo.s4{border-left-color:var(--s4-atencao);}
+.kpi.has-semaforo.s5{border-left-color:var(--s5-alerta);}
+.kpi.has-semaforo.s6{border-left-color:var(--s6-critico);}
+
+/* ===== BALÃO EXPLICATIVO (TOOLTIP) ===== */
+.help-dot{
+  display:inline-flex; align-items:center; justify-content:center; width:15px; height:15px; border-radius:50%;
+  background:var(--paper-2); border:1px solid var(--line); color:#766F5E; font-family:var(--mono); font-size:10px;
+  cursor:help; margin-left:6px; flex-shrink:0; position:relative; vertical-align:middle;
+}
+.help-dot:hover, .help-dot:focus{background:var(--moss-deep); color:var(--paper); border-color:var(--moss-deep);}
+.help-dot .balloon{
+  display:none; position:absolute; bottom:calc(100% + 8px); left:50%; transform:translateX(-50%);
+  width:240px; background:var(--ink); color:var(--paper); padding:11px 13px; border-radius:5px;
+  font-family:var(--sans); font-size:12px; font-weight:400; line-height:1.5; text-align:left; z-index:60;
+  box-shadow:0 6px 18px rgba(0,0,0,0.18); cursor:auto;
+}
+.help-dot .balloon::after{
+  content:''; position:absolute; top:100%; left:50%; transform:translateX(-50%);
+  border:6px solid transparent; border-top-color:var(--ink);
+}
+.help-dot:hover .balloon, .help-dot:focus .balloon, .help-dot.pinned .balloon{display:block;}
+.help-dot.align-right .balloon{left:auto; right:0; transform:none;}
+.help-dot.align-right .balloon::after{left:auto; right:10px; transform:none;}
+@media (max-width:640px){
+  .help-dot .balloon{width:200px; font-size:11.5px;}
+}
+.block-head h2 .help-dot{margin-left:8px;}
+
+/* Tables */
+.tbl-wrap{overflow-x:auto; border:1px solid var(--line);}
+table.data{width:100%; border-collapse:collapse; font-size:13px;}
+table.data th{
+  text-align:left; font-family:var(--mono); font-size:10.5px; letter-spacing:0.04em; text-transform:uppercase;
+  color:#766F5E; padding:11px 14px; background:var(--paper-2); border-bottom:1px solid var(--line); white-space:nowrap;
+}
+table.data td{padding:10px 14px; border-bottom:1px solid #EAE4D6; white-space:nowrap; font-family:var(--sans);}
+table.data tbody tr:hover{background:#F6F2E8;}
+table.data tbody tr:last-child td{border-bottom:none;}
+table.data td.num{font-family:var(--mono); text-align:right; font-variant-numeric:tabular-nums;}
+table.data td.neg{color:var(--red-flag);}
+table.data td.pos{color:var(--green-flag);}
+table.data tfoot td{font-weight:700; border-top:1.5px solid var(--ink); background:var(--paper-2); font-family:var(--mono);}
+.tbl-scroll{max-height:420px; overflow-y:auto;}
+
+.tag{
+  font-family:var(--mono); font-size:10.5px; padding:2px 8px; border-radius:100px; display:inline-block;
+  letter-spacing:0.02em;
+}
+.tag.ok{background:#E2EFE2; color:var(--green-flag);}
+.tag.warn{background:#F7EAD8; color:var(--gold);}
+.tag.bad{background:#F3DCD4; color:var(--red-flag);}
+.tag.neutral{background:#EFEAE0; color:#6B6557;}
+
+/* Two-col layout */
+.cols-2{display:grid; grid-template-columns:1.3fr 1fr; gap:28px;}
+@media (max-width:900px){.cols-2{grid-template-columns:1fr;}}
+.cols-2-even{display:grid; grid-template-columns:1fr 1fr; gap:28px;}
+@media (max-width:900px){.cols-2-even{grid-template-columns:1fr;}}
+
+.breakdown-list{border:1px solid var(--line);}
+.breakdown-row{display:flex; justify-content:space-between; align-items:center; padding:12px 16px; border-bottom:1px solid #EAE4D6; gap:16px;}
+.breakdown-row:last-child{border-bottom:none;}
+.breakdown-row .name{font-size:13.5px;}
+.breakdown-row .bar-track{flex:1; height:5px; background:var(--paper-2); border-radius:3px; margin:0 14px; position:relative; max-width:140px;}
+.breakdown-row .bar-fill{position:absolute; left:0; top:0; height:100%; border-radius:3px; background:var(--rust);}
+.breakdown-row .amt{font-family:var(--mono); font-size:13px; font-weight:600; white-space:nowrap; min-width:80px; text-align:right;}
+.breakdown-row.total{background:var(--paper-2); font-weight:700;}
+
+.chart-card{border:1px solid var(--line); padding:20px; background:var(--paper);}
+.chart-card h3{font-family:var(--serif); font-size:15px; font-weight:600; margin-bottom:16px;}
+canvas{max-width:100%; max-height:300px; display:block;}
+
+/* Executive summary */
+.exec-grid{display:grid; grid-template-columns:repeat(2,1fr); gap:0; border:1px solid var(--line);}
+@media (max-width:760px){.exec-grid{grid-template-columns:1fr;}}
+.exec-item{padding:24px 26px; border-bottom:1px solid var(--line); border-right:1px solid var(--line);}
+.exec-item:nth-child(2n){border-right:none;}
+.exec-item .q{font-family:var(--mono); font-size:11px; color:#8C8570; text-transform:uppercase; letter-spacing:0.03em; margin-bottom:8px;}
+.exec-item .a{font-family:var(--serif); font-size:19px; font-weight:600; line-height:1.3;}
+.exec-item .a small{font-family:var(--sans); font-size:13px; font-weight:400; color:#6B6557; display:block; margin-top:4px;}
+
+.audit-flag{
+  display:flex; gap:14px; padding:16px 18px; border:1px solid var(--line); margin-bottom:10px; align-items:flex-start;
+}
+.audit-flag .icon{font-size:16px; line-height:1.4;}
+.audit-flag .body strong{display:block; font-size:14px; margin-bottom:3px;}
+.audit-flag .body p{font-size:13px; color:#5C5748; line-height:1.5;}
+.audit-flag.ok{border-left:3px solid var(--green-flag);}
+.audit-flag.warn{border-left:3px solid var(--gold);}
+.audit-flag.bad{border-left:3px solid var(--red-flag);}
+
+.note-box{
+  background:var(--paper-2); border-left:3px solid var(--moss); padding:16px 18px; font-size:13px; line-height:1.55; color:#3D392E; margin-top:18px;
+}
+.note-box strong{color:var(--moss-deep);}
+
+#partialBanner{
+  background:#F7EAD8; border-left:3px solid var(--gold); padding:16px 18px; font-size:13.5px; line-height:1.55; color:#4A3D1F;
+}
+#partialBanner strong{color:#8A6512;}
+
+footer.app-footer{padding:40px 0; text-align:center;}
+footer.app-footer p{font-family:var(--mono); font-size:11px; color:#A39C88;}
+
+.empty-note{font-family:var(--mono); font-size:12.5px; color:#8C8570; padding:30px; text-align:center; border:1px dashed var(--line);}
+
+.adv-toggle-hist{
+  font-family:var(--mono); font-size:11.5px; color:#766F5E; background:none; border:1px solid var(--line); border-radius:100px;
+  cursor:pointer; padding:7px 16px;
+}
+.adv-toggle-hist:hover{border-color:var(--moss); color:var(--moss-deep);}
+.hist-disclaimer{font-family:var(--mono); font-size:11px; color:#8C8570; margin-top:14px; line-height:1.55;}
+.hist-del-btn{
+  font-family:var(--mono); font-size:10.5px; color:#A39C88; background:none; border:none; cursor:pointer; text-decoration:underline;
+}
+.hist-del-btn:hover{color:var(--red-flag);}
+#historicoSection{padding:36px 0;}
+#historicoSection .block-head{margin-bottom:0;}
+
+.content-blurred{
+  filter: blur(7px); user-select:none; pointer-events:none; -webkit-filter: blur(7px);
+}
+.blur-overlay{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:40;
+  background:rgba(251,248,243,0.35);
+}
+.blur-overlay-card{
+  background:var(--paper); border:1px solid var(--line); border-radius:6px; padding:28px 34px; max-width:420px;
+  text-align:center; box-shadow:0 10px 32px rgba(20,17,15,0.14);
+}
+.blur-overlay-icon{font-size:26px; margin-bottom:10px;}
+.blur-overlay-card strong{font-family:var(--serif); font-size:17px; display:block; margin-bottom:8px;}
+.blur-overlay-card p{font-size:13px; color:#5C5748; line-height:1.5; margin-bottom:16px;}
+.blur-overlay-btn{
+  display:inline-block; font-family:var(--sans); font-weight:700; font-size:13.5px; background:var(--rust); color:var(--paper);
+  padding:11px 22px; border-radius:3px; text-decoration:none;
+}
+#loader{
+  position:fixed; inset:0; background:rgba(251,248,243,0.97); z-index:200;
+  display:none; align-items:center; justify-content:center; flex-direction:column;
+}
+#loader .spin{
+  width:36px; height:36px; border:3px solid var(--line); border-top-color:var(--rust); border-radius:50%;
+  animation:sp 0.8s linear infinite; margin-bottom:18px;
+}
+@keyframes sp{to{transform:rotate(360deg);}}
+#loader .msg{font-family:var(--mono); font-size:13px; color:#6B6557;}
+
+.period-banner{
+  font-family:var(--mono); font-size:11.5px; color:#766F5E; padding:14px 0; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; flex-wrap:wrap; gap:10px;
+}
+.period-banner b{color:var(--ink);}
+
+a.reset-link{font-family:var(--mono); font-size:11px; color:#A39C88; cursor:pointer; text-decoration:underline;}
+a.reset-link:hover{color:var(--rust);}
+
+.export-menu-wrap{position:relative;}
+.export-btn{
+  font-family:var(--sans); font-weight:700; font-size:12.5px; background:var(--moss-deep); color:var(--paper);
+  border:none; padding:9px 16px; border-radius:3px; cursor:pointer;
+}
+.export-btn:hover{background:var(--rust);}
+.export-menu{
+  display:none; position:absolute; top:calc(100% + 6px); right:0; background:var(--paper); border:1px solid var(--line);
+  border-radius:4px; box-shadow:0 8px 24px rgba(0,0,0,0.12); min-width:220px; z-index:80; overflow:hidden;
+}
+.export-menu.open{display:block;}
+.export-menu button{
+  display:block; width:100%; text-align:left; padding:11px 16px; font-family:var(--sans); font-size:13px;
+  background:none; border:none; cursor:pointer; color:var(--ink); border-bottom:1px solid var(--line);
+}
+.export-menu button:last-child{border-bottom:none;}
+.export-menu button:hover{background:var(--paper-2); color:var(--rust);}
+.export-menu button:disabled{color:#A39C88; cursor:not-allowed;}
+.export-menu button:disabled:hover{background:none; color:#A39C88;}
+
+@media print{
+  header.top, .export-menu-wrap, #resetLink, .help-dot .balloon, #partialBanner,
+  #toggleHistorico, #planSwitcher, .reset-link { display:none !important; }
+  body{padding-bottom:0;}
+  section.block{break-inside:avoid; padding:18px 0;}
+  .kpi-row, .plans-grid{break-inside:avoid;}
+}
+
+/* CALCULADORA STYLES */
+.calc-box { margin-top: 24px; }
+.calc-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+@media (min-width: 768px) { .calc-grid { grid-template-columns: 1fr 1fr; } }
+.calc-inputs { background: var(--paper-2); padding: 20px; border-radius: 6px; }
+.calc-inputs .field { margin-bottom: 16px; }
+.calc-inputs label { display: block; font-weight: 500; margin-bottom: 6px; font-size: 13px; }
+.calc-inputs .input-wrap { position: relative; display: flex; align-items: center; }
+.calc-inputs .prefix { position: absolute; left: 12px; color: #766F5E; font-weight: 500; }
+.calc-inputs input { width: 100%; padding: 10px 12px 10px 32px; border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
+.calc-inputs .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.calc-resultados { background: white; padding: 20px; border-radius: 6px; }
+.resultado-item { padding: 12px 0; border-bottom: 1px solid var(--line); display: flex; justify-content: space-between; align-items: center; }
+.resultado-item:last-child { border-bottom: none; }
+.resultado-label { font-size: 13px; color: #766F5E; }
+.resultado-valor { font-family: var(--mono); font-weight: 600; font-size: 16px; color: var(--moss); }
+
+</style>
+</head>
+<body>
+<script src="auth-config.js"></script>
+<script src="auth-utils.js"></script>
+
+<div id="loader"><div class="spin"></div><div class="msg" id="loaderMsg">Processando planilhas…</div></div>
+
+<div class="modal-overlay" id="helpModal">
+  <div class="modal-box">
+    <button class="modal-close" id="helpModalClose">fechar ✕</button>
+    <div id="helpModalContent"></div>
+  </div>
+</div>
+
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <div class="mark">Auditoria<span>.</span>Shopee</div>
+      <div class="tag">Reconciliação financeira completa</div>
+    </div>
+    <div style="display:flex; align-items:center; gap:14px;">
+      <div class="plan-switcher" id="planSwitcher">
+        <span class="plan-switcher-label">Plano:</span>
+        <button data-plan="free" class="active">Free
+          <span class="plan-tooltip">1 auditoria/mês · visão geral e vendas brutas · sem calculadora</span>
+        </button>
+        <button data-plan="iniciante">Iniciante
+          <span class="plan-tooltip">Auditorias ilimitadas · todas as seções · até 10 produtos/mês na calculadora · R$29,90/mês</span>
+        </button>
+        <button data-plan="pro">Pro
+          <span class="plan-tooltip">Tudo do Iniciante · calculadora ilimitada · cálculo reverso · múltiplas lojas · R$69,90/mês</span>
+        </button>
+      </div>
+      <div class="account-pill" id="accountPill" style="display:none;">
+        <span class="account-plan-tag" id="accountPlanTag">—</span>
+        <span id="accountEmail">—</span>
+        <a href="perfil.html" title="Gerenciar conta, lojas, segurança">⚙️ Minha conta</a>
+      </div>
+      <div class="store-pill" id="storePill" style="display:none;"><span class="dot"></span><span id="storeName">—</span></div>
+    </div>
+  </div>
+</header>
+
+<div id="authLoadingScreen" class="auth-loading-screen">Verificando sua conta…</div>
+
+<!-- UPLOAD STAGE -->
+<div id="uploadStage" class="stage">
+  <div class="wrap">
+    <h1>Reconstrua <em>toda</em> a vida financeira<br>da sua conta Shopee.</h1>
+    <p class="lede">Envie pelo menos um relatório exportado do Seller Center para já ter uma auditoria parcial — quanto mais relatórios, mais seções e mais completa a conciliação entre eles. O processamento roda inteiramente no seu navegador, nenhum arquivo é enviado a servidores. Não se preocupe em acertar o quadrado certo: o app identifica automaticamente o tipo de cada arquivo pelo seu conteúdo.</p>
+
+    <div class="drop-grid">
+      <label class="drop" id="drop-income">
+        <input type="file" id="file-income" accept=".xlsx,.xls">
+        <div><div class="num">01 · recomendado</div><div class="label">Income (Renda)</div></div>
+        <div class="desc">Relatório de rendimento — abas Summary, Renda, Adjustment</div>
+        <div class="filename" id="fn-income"></div>
+        <button type="button" class="help-btn" data-help="income">Onde encontro? →</button>
+      </label>
+      <label class="drop" id="drop-balance">
+        <input type="file" id="file-balance" accept=".xlsx,.xls">
+        <div><div class="num">02 · recomendado</div><div class="label">Extrato da Carteira</div></div>
+        <div class="desc">Balance / transaction report — entradas, saídas, saques</div>
+        <div class="filename" id="fn-balance"></div>
+        <button type="button" class="help-btn" data-help="balance">Onde encontro? →</button>
+      </label>
+      <label class="drop" id="drop-orders">
+        <input type="file" id="file-orders" accept=".xlsx,.xls">
+        <div><div class="num">03 · recomendado</div><div class="label">Pedidos (Orders)</div></div>
+        <div class="desc">Lista completa de pedidos do período, todos os status</div>
+        <div class="filename" id="fn-orders"></div>
+        <button type="button" class="help-btn" data-help="orders">Onde encontro? →</button>
+      </label>
+      <label class="drop" id="drop-ads">
+        <input type="file" id="file-ads" accept=".xlsx,.xls,.csv">
+        <div><div class="num">04 · opcional</div><div class="label">Relatório de Ads</div></div>
+        <div class="desc">Recarga, consumo e desempenho de campanhas</div>
+        <div class="filename" id="fn-ads"></div>
+        <button type="button" class="help-btn" data-help="ads">Onde encontro? →</button>
+      </label>
+    </div>
+
+    <div class="actions-row">
+      <button class="btn-run" id="btnRun" disabled>Rodar auditoria completa →</button>
+      <button class="btn-secondary" id="btnDemo">ou veja com dados de exemplo</button>
+    </div>
+    <div class="actions-row" style="margin-top: 12px;">
+      <button id="btnCalculadora" class="btn-run" onclick="abrirCalculadora(); return false;" style="background: var(--rust); color: white;">💰 Abrir Calculadora de Custos</button>
+    </div>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashboard">
+  <div class="wrap period-banner">
+    <div>Loja <b id="bannerStore">—</b> · Período <b id="bannerPeriod">—</b></div>
+    <div style="display:flex; align-items:center; gap:18px;">
+      <div class="export-menu-wrap">
+        <button class="export-btn" id="exportMenuBtn">⬇ Baixar relatório</button>
+        <div class="export-menu" id="exportMenu">
+          <button data-export="word">📄 Word (.docx)</button>
+          <button data-export="excel">📊 Excel (.xlsx)</button>
+          <button data-export="pptx">📽 PowerPoint (.pptx)</button>
+          <button data-export="print">🖨 Imprimir / salvar como PDF</button>
+          <button data-export="png">🖼 Imagem (PNG)</button>
+          <button data-export="jpg">🖼 Imagem (JPG)</button>
+        </div>
+      </div>
+      <a class="reset-link" id="resetLink">↺ nova auditoria / outros arquivos</a>
+    </div>
+  </div>
+  <div class="wrap" id="partialBanner" style="display:none; margin-top:18px;"></div>
+
+  <!-- HISTÓRICO -->
+  <section class="block" id="historicoSection">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">•</span> Histórico de Auditorias<span class="help-dot" tabindex="0">?<span class="balloon">Toda vez que você roda uma auditoria neste navegador, um resumo é salvo automaticamente aqui — assim você pode comparar a evolução da loja mês a mês.</span></span></h2>
+        <button class="adv-toggle-hist" id="toggleHistorico">mostrar histórico ↓</button>
+      </div>
+      <div id="historicoContent" style="display:none;"></div>
+    </div>
+  </section>
+
+  <!-- 1. VISÃO GERAL -->
+  <section class="block" data-requires="orders" data-section="01">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">01</span> Visão Geral do Período<span class="help-dot" tabindex="0">?<span class="balloon">Mostra quantos pedidos sua loja teve no período e em que situação cada um está: concluído, cancelado, em entrega, etc. É o ponto de partida da auditoria.</span></span></h2>
+        <div class="sub">Volume de pedidos por status, identificado automaticamente a partir do relatório de pedidos.</div>
+      </div>
+      <div class="kpi-row" id="kpiOverview"></div>
+      <div class="cols-2" style="margin-top:24px;">
+        <div class="chart-card"><h3>Pedidos por status</h3><canvas id="chartStatus" height="160"></canvas></div>
+        <div class="breakdown-list" id="statusBreakdown"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. VENDAS BRUTAS -->
+  <section class="block" data-requires="orders" data-section="02">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">02</span> Vendas Brutas<span class="help-dot" tabindex="0">?<span class="balloon">O total que você vendeu, somando todos os pedidos que não foram cancelados — antes de qualquer taxa da Shopee ser descontada. Também chamado de GMV.</span></span></h2>
+        <div class="sub">Apenas pedidos não cancelados.</div>
+      </div>
+      <div class="kpi-row" id="kpiVendas"></div>
+    </div>
+  </section>
+
+  <!-- 3. DESCONTOS SHOPEE -->
+  <section class="block" data-requires="income" data-section="03" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">03</span> Descontos da Shopee<span class="help-dot" tabindex="0">?<span class="balloon">Tudo que a Shopee desconta do valor da sua venda: comissão, taxa de serviço, frete subsidiado, cupons, etc. É a diferença entre o que o cliente pagou e o que sobra para você.</span></span></h2>
+        <div class="sub">Toda taxa, cupom e desconto extraído do relatório de Income — categoria a categoria.</div>
+      </div>
+      <div class="cols-2">
+        <div class="breakdown-list" id="descontosBreakdown"></div>
+        <div class="chart-card"><h3>Distribuição das taxas</h3><canvas id="chartTaxas" height="180"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4. RECEITA LÍQUIDA -->
+  <section class="block" data-requires="income" data-section="04" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">04</span> Receita Líquida<span class="help-dot" tabindex="0">?<span class="balloon">O que realmente sobra depois de todos os descontos da Shopee — o valor que efetivamente é liberado para sua carteira de vendedor.</span></span></h2>
+        <div class="sub">Receita bruta menos todos os descontos da Shopee.</div>
+      </div>
+      <div class="tbl-wrap">
+        <table class="data" id="tblReceitaLiquida"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. FLUXO DA CARTEIRA -->
+  <section class="block" data-requires="balance" data-section="05" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">05</span> Fluxo da Carteira<span class="help-dot" tabindex="0">?<span class="balloon">O extrato da sua carteira de vendedor: tudo que entrou (vendas liberadas) e tudo que saiu (saques, anúncios, ajustes), dia a dia.</span></span></h2>
+        <div class="sub">Entradas, saídas, saques e transferências — extraído do extrato da carteira.</div>
+      </div>
+      <div class="kpi-row" id="kpiCarteira"></div>
+      <div class="cols-2" style="margin-top:24px;">
+        <div class="chart-card"><h3>Entradas × saídas por dia</h3><canvas id="chartFluxoDia" height="180"></canvas></div>
+        <div class="breakdown-list" id="carteiraBreakdown"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. PAGAMENTOS PENDENTES -->
+  <section class="block" data-requires="orders,income" data-section="06" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">06</span> Pagamentos Pendentes<span class="help-dot" tabindex="0">?<span class="balloon">Pedidos que você já vendeu, mas cuja renda a Shopee ainda não liberou para sua carteira. É dinheiro que ainda vai chegar.</span></span></h2>
+        <div class="sub">Pedidos cujo valor ainda não foi liberado na carteira — ordenado do maior para o menor valor.</div>
+      </div>
+      <div class="kpi-row" id="kpiPendentes" style="margin-bottom:20px;"></div>
+      <div class="tbl-wrap tbl-scroll">
+        <table class="data" id="tblPendentes"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. CANCELADOS -->
+  <section class="block" data-requires="orders" data-section="07" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">07</span> Pedidos Cancelados<span class="help-dot" tabindex="0">?<span class="balloon">Pedidos que foram cancelados antes de virar venda de fato — e por isso não geram renda nenhuma. Mostra o motivo de cada cancelamento.</span></span></h2>
+        <div class="sub">Valor que deixou de entrar, com o motivo de cada cancelamento.</div>
+      </div>
+      <div class="kpi-row" id="kpiCancelados" style="margin-bottom:20px;"></div>
+      <div class="tbl-wrap">
+        <table class="data" id="tblCancelados"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. DEVOLUÇÕES -->
+  <section class="block" data-requires="orders" data-section="08" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">08</span> Devoluções &amp; Reembolsos<span class="help-dot" tabindex="0">?<span class="balloon">Pedidos em que o cliente solicitou ou pode solicitar devolução do produto. Pode reduzir o valor que você efetivamente recebe.</span></span></h2>
+        <div class="sub">Pedidos com devolução em andamento, aprovada, ou já reembolsada.</div>
+      </div>
+      <div class="kpi-row" id="kpiDevolucoes" style="margin-bottom:20px;"></div>
+      <div class="tbl-wrap">
+        <table class="data" id="tblDevolucoes"></table>
+      </div>
+    </div>
+  </section>
+
+  <!-- 9. ANÚNCIOS -->
+  <section class="block" id="blockAds" data-requires="balance" data-section="09" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">09</span> Anúncios (Shopee Ads)<span class="help-dot" tabindex="0">?<span class="balloon">Quanto você gastou com anúncios dentro da Shopee (Shopee Ads), estimado a partir das recargas identificadas no extrato da carteira.</span></span></h2>
+        <div class="sub">Recargas identificadas no extrato da carteira como saída de "Saldo da Carteira – Pagamento".</div>
+      </div>
+      <div class="kpi-row" id="kpiAds"></div>
+      <div class="note-box" id="adsNote" style="margin-top:18px;"></div>
+    </div>
+  </section>
+
+  <!-- 10. CONCILIAÇÃO -->
+  <section class="block" data-requires="orders,income,balance" data-section="10" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">10</span> Conciliação Entre Relatórios<span class="help-dot" tabindex="0">?<span class="balloon">Compara os números de diferentes relatórios da Shopee entre si (Pedidos, Income, Carteira) para garantir que tudo bate — e explica qualquer diferença encontrada.</span></span></h2>
+        <div class="sub">Cruzamento de valores entre Pedidos, Income e Carteira. Toda diferença é explicada abaixo.</div>
+      </div>
+      <div class="tbl-wrap" style="margin-bottom:20px;">
+        <table class="data" id="tblConciliacao"></table>
+      </div>
+      <div id="conciliacaoFlags"></div>
+    </div>
+  </section>
+
+  <!-- 11. FLUXO DE CAIXA -->
+  <section class="block" data-requires="balance" data-section="11" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">11</span> Fluxo de Caixa Consolidado<span class="help-dot" tabindex="0">?<span class="balloon">Visão consolidada de todo o dinheiro que entrou e saiu da sua carteira no período, organizado por categoria.</span></span></h2>
+        <div class="sub">Todas as entradas e saídas da carteira, por categoria.</div>
+      </div>
+      <div class="cols-2-even">
+        <div>
+          <div class="chart-card"><h3>Saldo acumulado no período</h3><canvas id="chartSaldoAcum" height="200"></canvas></div>
+        </div>
+        <div class="tbl-wrap">
+          <table class="data" id="tblFluxoCaixa"></table>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 12. PREVISÃO -->
+  <section class="block" data-requires="orders,income" data-section="12" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">12</span> Previsão de Caixa<span class="help-dot" tabindex="0">?<span class="balloon">Estimativa de quanto dinheiro ainda deve ser liberado pela Shopee, agrupado pela fase em que cada pedido está.</span></span></h2>
+        <div class="sub">Valor de pedidos não liberados, agrupado pela data prevista de liberação.</div>
+      </div>
+      <div class="kpi-row" id="kpiPrevisao"></div>
+    </div>
+  </section>
+
+  <!-- 13. SAÚDE FINANCEIRA -->
+  <section class="block" data-requires="orders,income,balance" data-section="13" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">13</span> Análise de Saúde Financeira <span id="helpSaude"></span></h2>
+      </div>
+      <div id="legendaSaude"></div>
+      <div class="exec-grid" id="saudeGrid"></div>
+    </div>
+  </section>
+
+  <!-- 14. KPIs -->
+  <section class="block" data-requires="orders,income,balance" data-section="14" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">14</span> Indicadores-Chave (KPIs)</h2>
+      </div>
+      <div class="kpi-row" id="kpiFinal" style="grid-template-columns:repeat(4,1fr);"></div>
+      <div class="kpi-row" id="kpiFinal2" style="grid-template-columns:repeat(4,1fr); margin-top:1px;"></div>
+    </div>
+  </section>
+
+  <!-- 15. AUDITORIA -->
+  <section class="block" data-requires="orders,income" data-section="15" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">15</span> Auditoria &amp; Inconsistências<span class="help-dot" tabindex="0">?<span class="balloon">Verificações automáticas que cruzam os relatórios em busca de erros, duplicidades ou valores fora do padrão — para você não precisar caçar isso manualmente.</span></span></h2>
+        <div class="sub">Verificações automáticas de integridade entre relatórios.</div>
+      </div>
+      <div id="auditFlags"></div>
+    </div>
+  </section>
+
+  <!-- 16. RELATÓRIO EXECUTIVO -->
+  <section class="block" data-requires="orders,income,balance" data-section="16" data-plan-min="iniciante">
+    <div class="wrap">
+      <div class="block-head">
+        <h2><span class="idx">16</span> Relatório Executivo<span class="help-dot" tabindex="0">?<span class="balloon">O resumo final: as perguntas mais importantes sobre a sua operação, respondidas de forma direta.</span></span></h2>
+      </div>
+      <div class="exec-grid" id="execGrid"></div>
+    </div>
+  </section>
+
+  <!-- CALCULADORA - Visível para Iniciante e Pro -->
+  <section class="block calc-section" id="calculadora">
+    <div class="wrap">
+      <div class="section-head">
+        <div class="eyebrow">Calculadora</div>
+        <h2>Quanto sobra de cada venda na Shopee?</h2>
+        <p>Informe o preço de venda, custo e frete — a calculadora aplica comissão, taxa fixa por faixa e taxa de campanha automaticamente.</p>
+      </div>
+
+      <div class="calc-box">
+        <div class="calc-grid">
+          <div class="calc-inputs">
+            <div class="field">
+              <label>Preço de venda</label>
+              <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcPreco" value="100" min="0" step="0.01"></div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label>Custo do produto</label>
+                <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcCusto" value="40" min="0" step="0.01"></div>
+              </div>
+              <div class="field">
+                <label>Frete pago por você</label>
+                <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcFrete" value="0" min="0" step="0.01"></div>
+              </div>
+            </div>
+            <div class="field">
+              <label>Custos extras (embalagem, etiqueta, outros)</label>
+              <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcExtras" value="0" min="0" step="0.01"></div>
+            </div>
+
+            <button onclick="calcularPrecificacao()" style="background: var(--moss-deep); color: white; padding: 12px 24px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 16px;">Calcular</button>
+          </div>
+
+          <div class="calc-resultados" id="calcResultados" style="display:none; padding: 20px; background: white; border-radius: 6px;">
+            <div class="resultado-item">
+              <div class="resultado-label">Sua receita</div>
+              <div class="resultado-valor" id="calcReceita">R$ 0,00</div>
+            </div>
+            <div class="resultado-item">
+              <div class="resultado-label">Margem líquida</div>
+              <div class="resultado-valor" id="calcMargem">0%</div>
+            </div>
+            <div class="resultado-item">
+              <div class="resultado-label">Por pedido</div>
+              <div class="resultado-valor" id="calcPorPedido">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="app-footer">
+    <p>Gerado localmente no navegador a partir dos relatórios enviados · nenhum dado foi transmitido a servidores externos</p>
+    <p style="margin-top:8px; max-width:640px; margin-left:auto; margin-right:auto;">Todos os valores deste relatório têm como única fonte os arquivos enviados pelo usuário, originalmente exportados pela própria plataforma Shopee (Seller Center). Esta auditoria não acessa, consulta ou se conecta à conta Shopee do usuário em nenhum momento.</p>
+  </footer>
+</div>
+
+<script>
+/* =========================================================================
+   PARSER — lê os 3 (4) relatórios da Shopee e devolve um objeto normalizado
+   ========================================================================= */
+
+const Parser = (() => {
+
+  function readWorkbook(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const wb = XLSX.read(data, { type: 'array', cellDates: true });
+          resolve(wb);
+        } catch (err) { reject(err); }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }
+
+  function sheetToAOA(wb, sheetName) {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) return null;
+    return XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+  }
+
+  function sheetToObjects(wb, sheetName, headerRowIndex) {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) return [];
+    const aoa = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+    const headers = aoa[headerRowIndex].map(h => (h === null || h === undefined) ? '' : String(h).trim());
+    const rows = [];
+    for (let i = headerRowIndex + 1; i < aoa.length; i++) {
+      const r = aoa[i];
+      if (!r || r.every(c => c === null || c === '')) continue;
+      const obj = {};
+      headers.forEach((h, idx) => { if (h) obj[h] = r[idx] === undefined ? null : r[idx]; });
+      rows.push(obj);
+    }
+    return rows;
+  }
+
+  function num(v) {
+    if (v === null || v === undefined || v === '' || v === '-') return 0;
+    if (typeof v === 'number') return v;
+    const s = String(v).replace(/\./g, '').replace(',', '.').replace(/[^0-9.\-]/g, '');
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+  }
+  function numLoose(v) {
+    // for cells already numeric-clean (xlsx usually gives numbers natively)
+    if (v === null || v === undefined || v === '' || v === '-') return 0;
+    if (typeof v === 'number') return v;
+    const n = parseFloat(v);
+    return isNaN(n) ? 0 : n;
+  }
+
+  function toDateStr(v) {
+    if (!v) return null;
+    if (v instanceof Date) return v.toISOString().slice(0, 10);
+    const s = String(v);
+    const m = s.match(/(\d{4}-\d{2}-\d{2})/);
+    return m ? m[1] : s.slice(0, 10);
+  }
+
+  /* ---------------- INCOME ---------------- */
+  function parseIncome(wb) {
+    const result = {
+      meta: { seller: null, bankAccount: null, bankName: null, periodFrom: null, periodTo: null },
+      summary: {},
+      rendaRows: [],
+      serviceFeeRows: [],
+      adjustmentRows: [],
+      adjustmentTotal: 0,
+      shippingDiscrepancyRows: []
+    };
+
+    // SUMMARY sheet
+    if (wb.SheetNames.includes('Summary')) {
+      const aoa = sheetToAOA(wb, 'Summary');
+      const findRow = (label) => aoa.find(r => r && r[0] && String(r[0]).trim() === label);
+      const seller = findRow('Nome de usuário (Vendedor)');
+      const bank = findRow('Conta bancária');
+      const bankName = findRow('Nome do Banco');
+      const from = findRow('De');
+      const to = findRow('Para');
+      result.meta.seller = seller ? seller[1] : null;
+      result.meta.bankAccount = bank ? bank[1] : null;
+      result.meta.bankName = bankName ? bankName[1] : null;
+      result.meta.periodFrom = from ? toDateStr(from[1]) : null;
+      result.meta.periodTo = to ? toDateStr(to[1]) : null;
+
+      const grab = (label) => {
+        const row = aoa.find(r => r && r[0] && String(r[0]).trim() === label);
+        if (!row) return null;
+        // value sits in column index 3 (col D) typically
+        for (let i = row.length - 1; i >= 1; i--) {
+          if (typeof row[i] === 'number') return row[i];
+        }
+        return null;
+      };
+      const grabSub = (label) => {
+        const row = aoa.find(r => r && r[1] && String(r[1]).trim() === label);
+        if (!row) return null;
+        return typeof row[2] === 'number' ? row[2] : null;
+      };
+
+      result.summary = {
+        receitaTotal: grab('1. Receita Total'),
+        subtotalProdutos: grab('Subtotal dos Produtos'),
+        precoOriginal: grabSub('Preço original do produto'),
+        promocaoProduto: grabSub('A promoção do seu produto'),
+        valorReembolsoSummary: grabSub('Valor do Reembolso'),
+        ajustePix: grabSub('Ajuste por pagamento via PIX'),
+        cupomSummary: grabSub('Cupom'),
+        cuponsDescontosTotal: grab('Cupons e Descontos'),
+        incentivoAcaoComercial: grabSub('Incentivo Shopee para ação comercial'),
+        voucherSeller: grabSub('Voucher subsidiado pelo Seller'),
+        voucherCompartilhado: grabSub('Voucher compartilhado subsidiado pelo Seller'),
+        incentivoCupom: grabSub('Incentivo de cupom'),
+        coinCashbackSeller: grabSub('Coin Cashback subsidiado pelo Seller'),
+        coinCashbackCompartilhado: grabSub('Coin Cashback compartilhado subsidiado pelo Seller'),
+        despesasTotais: grab('2. Despesas Totais'),
+        subtotalEnvio: grab('Subtotal de Envio'),
+        taxaFretePagaComprador: grabSub('Taxa de frete paga pelo comprador'),
+        descontoFrete3PL: grabSub('Desconto na taxa de frete de 3PL'),
+        descontoFreteShopee: grabSub('Desconto de frete pela Shopee'),
+        taxaFreteRealShopee: grabSub('Taxa de frete real paga pela Shopee'),
+        taxaEnvioReverso: grabSub('Taxa de envio reverso'),
+        taxaRetorno: grabSub('Taxa de retorno.'),
+        taxasEncargosTotal: grab('Taxas e Encargos'),
+        taxaComissaoAfiliados: grabSub('Taxa de comissão Afiliados do Vendedor'),
+        taxaComissaoLiquida: grabSub('Taxa de comissão líquida'),
+        taxaServicoLiquida: grabSub('Taxa de serviço líquida'),
+        taxaDevolucaoFacil: grabSub('Taxa de Devolução Fácil Shopee'),
+        taxaTransacao: grabSub('Taxa de transação'),
+        acrescimoAMP: grabSub('Acréscimo por Método de Pagamento (AMP)'),
+        deducaoAMP: grabSub('Dedução de AMP'),
+        taxaRecargaAutomatica: grabSub('Taxa da Recarga Automática (Pedido)'),
+        quantidadeTotalLiberada: grab('3. Quantidade Total Liberada'),
+        promocaoDescontoFrete: grab('Promoção de Desconto no Frete'),
+        taxaComissaoBruta: grab('Taxa de comissão bruta'),
+        taxaServicoBruta: grab('Taxa de serviço bruta'),
+        ajusteParticipacaoAcao: grab('Ajuste por participação em ação comercial')
+      };
+    }
+
+    // RENDA sheet (line-item detail) — header is row index 2 (3rd row)
+    if (wb.SheetNames.includes('Renda')) {
+      const rows = sheetToObjects(wb, 'Renda', 2);
+      result.rendaRows = rows.filter(r => r['Ver'] === 'Order').map(r => ({
+        seq: r['Número da sequência'],
+        orderId: r['ID do pedido'],
+        refundId: r['ID do reembolso'],
+        dataCriacao: toDateStr(r['Data de criação do pedido']),
+        dataPagamento: toDateStr(r['Data de conclusão do pagamento']),
+        canalLiberacao: r['Canal de liberação'],
+        quantiaLancada: numLoose(r['Quantia total lançada (R$)']),
+        precoProduto: numLoose(r['Preço do produto']),
+        valorReembolso: numLoose(r['Valor do Reembolso']),
+        cupom: numLoose(r['Cupom']),
+        taxaFretePagaComprador: numLoose(r['Taxa de frete paga pelo comprador']),
+        freteParceiroLogistico: numLoose(r['Frete cobrado pelo parceiro logístico']),
+        descontoFreteShopee: numLoose(r['Desconto de frete pela Shopee']),
+        taxaComissaoLiquida: numLoose(r['Taxa de comissão líquida']),
+        taxaServicoLiquida: numLoose(r['Taxa de serviço líquida']),
+        taxaComissaoBruta: numLoose(r['Taxa de comissão bruta']),
+        taxaServicoBruta: numLoose(r['Taxa de serviço bruta']),
+        comprador: r['Nome de usuário (Comprador)'],
+        quantiaPagaComprador: numLoose(r['Quantia paga pelo comprador']),
+        metodoPagamento: r['Método de Pagamento do Comprador'],
+        transportadora: r['Nome da Transportadora']
+      }));
+    }
+
+    if (wb.SheetNames.includes('Service Fee Details')) {
+      const rows = sheetToObjects(wb, 'Service Fee Details', 1);
+      result.serviceFeeRows = rows.map(r => ({
+        orderId: r['ID do pedido'],
+        taxaTransacao: numLoose(r['Taxa de Transação']),
+        taxaPorItem: numLoose(r['Taxa por item vendido'])
+      }));
+    }
+
+    if (wb.SheetNames.includes('Adjustment')) {
+      const aoa = sheetToAOA(wb, 'Adjustment');
+      const totalRow = aoa.find(r => r && r[0] && String(r[0]).trim() === 'Valor total do ajuste');
+      result.adjustmentTotal = totalRow ? numLoose(totalRow[4]) : 0;
+      const headerIdx = aoa.findIndex(r => r && r[0] === 'Número da sequência');
+      if (headerIdx >= 0) {
+        const headers = aoa[headerIdx];
+        for (let i = headerIdx + 1; i < aoa.length; i++) {
+          const r = aoa[i];
+          if (!r || r[0] === null || r[0] === undefined) continue;
+          if (typeof r[0] !== 'number') continue; // skip footer rows like "Valor total"
+          result.adjustmentRows.push({
+            seq: r[0],
+            dataConclusao: toDateStr(r[1]),
+            tipo: r[2],
+            motivo: r[3],
+            valor: numLoose(r[4]),
+            pedidoRelacionado: r[5],
+            dataPagamento: toDateStr(r[6])
+          });
+        }
+      }
+    }
+
+    if (wb.SheetNames.includes('Shipping Fee Discrepancy')) {
+      const headerIdx = 1;
+      const rows = sheetToObjects(wb, 'Shipping Fee Discrepancy', headerIdx);
+      result.shippingDiscrepancyRows = rows.map(r => ({
+        orderId: r['ID do pedido'],
+        esperada: numLoose(r['Taxa de frete esperada:']),
+        real: numLoose(r['Taxa de frete real cobrada pelo parceiro logístico:']),
+        motivo: r['Motivo da discrepância']
+      }));
+    }
+
+    return result;
+  }
+
+  /* ---------------- BALANCE / WALLET ---------------- */
+  function parseBalance(wb) {
+    const sheetName = wb.SheetNames[0];
+    const aoa = sheetToAOA(wb, sheetName);
+
+    const findRow = (label) => aoa.find(r => r && r[0] && String(r[0]).trim() === label);
+    const sellerRow = findRow('Nome de usuário (vendedor)');
+    const fromRow = findRow('De');
+    const toRow = findRow('Para');
+
+    const entradaRow = aoa.find(r => r && r[0] && String(r[0]).trim() === 'Entrada total de dinheiro');
+    const saidaRow = aoa.find(r => r && r[0] && String(r[0]).trim() === 'Saída total de dinheiro');
+
+    const headerIdx = aoa.findIndex(r => r && r[0] === 'Data' && r[1] === 'Tipo de transação');
+    const transactions = [];
+    if (headerIdx >= 0) {
+      for (let i = headerIdx + 1; i < aoa.length; i++) {
+        const r = aoa[i];
+        if (!r || !r[0]) continue;
+        transactions.push({
+          data: r[0] instanceof Date ? r[0] : new Date(r[0]),
+          dataStr: toDateStr(r[0]),
+          tipo: r[1],
+          descricao: r[2],
+          orderId: r[3],
+          direcao: r[4],
+          valor: numLoose(r[5]),
+          status: r[6],
+          saldoApos: numLoose(r[7]),
+          valorAjustado: numLoose(r[8])
+        });
+      }
+    }
+
+    return {
+      meta: {
+        seller: sellerRow ? sellerRow[1] : null,
+        periodFrom: fromRow ? toDateStr(fromRow[1]) : null,
+        periodTo: toRow ? toDateStr(toRow[1]) : null
+      },
+      entradaTotal: entradaRow ? numLoose(entradaRow[4]) : 0,
+      saidaTotal: saidaRow ? numLoose(saidaRow[4]) : 0,
+      transactions
+    };
+  }
+
+  /* ---------------- ORDERS ---------------- */
+  function parseOrders(wb) {
+    const sheetName = wb.SheetNames.includes('orders') ? 'orders' : wb.SheetNames[0];
+    const rows = sheetToObjects(wb, sheetName, 0);
+
+    const lineItems = rows.map(r => ({
+      orderId: r['ID do pedido'],
+      tipoPedido: r['Tipo de pedido'],
+      status: r['Status do pedido'],
+      cancelMotivo: r['Cancelar Motivo'],
+      statusDevolucao: r['Status da Devolução / Reembolso'],
+      dataCriacao: toDateStr(r['Data de criação do pedido']),
+      dataPagamento: toDateStr(r['Hora do pagamento do pedido']),
+      nomeProduto: r['Nome do Produto'],
+      quantidade: numLoose(r['Quantidade']),
+      qtdDevolvida: numLoose(r['Returned quantity']),
+      subtotalProduto: numLoose(r['Subtotal do produto']),
+      valorTotal: numLoose(r['Valor Total']),
+      totalGlobal: numLoose(r['Total global']),
+      taxaEnvioComprador: numLoose(r['Taxa de envio pagas pelo comprador']),
+      descontoFreteAprox: numLoose(r['Desconto de Frete Aproximado']),
+      taxaComissaoBruta: numLoose(r['Taxa de comissão bruta']),
+      taxaComissaoLiquida: numLoose(r['Taxa de comissão líquida']),
+      taxaServicoBruta: numLoose(r['Taxa de serviço bruta']),
+      taxaServicoLiquida: numLoose(r['Taxa de serviço líquida']),
+      comprador: r['Nome de usuário (comprador)'],
+      uf: r['UF'],
+      cidade: r['Cidade'],
+      metodoEnvio: r['Método de envio']
+    }));
+
+    // dedupe by orderId for order-level metrics (sheet has 1 row per SKU)
+    const byOrder = new Map();
+    for (const li of lineItems) {
+      if (!byOrder.has(li.orderId)) byOrder.set(li.orderId, li);
+    }
+    const orders = Array.from(byOrder.values());
+
+    return { lineItems, orders };
+  }
+
+  return { readWorkbook, parseIncome, parseBalance, parseOrders, num, numLoose, toDateStr };
+})();
+
+</script>
+<script>
+/* =========================================================================
+   APP — orquestra parsing, agrega métricas e renderiza o dashboard
+   ========================================================================= */
+
+const state = { income: null, balance: null, orders: null, ads: null };
+let charts = {};
+const PLAN_ORDER = { free: 0, iniciante: 1, pro: 2 };
+const CALC_LIMITS = { free: 0, iniciante: 10, pro: Infinity };
+let currentPlan = 'free';
+let calcUsadoEsteMs = 0;
+
+const BRL = (v, opts = {}) => {
+  const n = (v === null || v === undefined || isNaN(v)) ? 0 : v;
+  const s = n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return (opts.noSign ? '' : (n < 0 ? '-R$ ' : 'R$ ')) + s.replace('-', '');
+};
+const pct = (v) => `${(v * 100).toFixed(1)}%`;
+const esc = (s) => (s === null || s === undefined) ? '' : String(s);
+
+/* ====================== BALÕES EXPLICATIVOS E SEMÁFORO ====================== */
+
+function helpDot(text, align) {
+  const cls = align === 'right' ? 'help-dot align-right' : 'help-dot';
+  return `<span class="${cls}" tabindex="0">?<span class="balloon">${text}</span></span>`;
+}
+
+// Classifica um valor em 1 (excelente) a 6 (crítico) dado limiares crescentes ou decrescentes.
+// thresholds = [limite_s1, limite_s2, limite_s3, limite_s4, limite_s5] — 5 limites para 6 faixas.
+// higherIsBetter = true: valores maiores são melhores (ex: margem). false: valores menores são melhores (ex: % de taxas).
+function classificarSemaforo(valor, thresholds, higherIsBetter = true) {
+  const t = thresholds;
+  if (higherIsBetter) {
+    if (valor >= t[0]) return 1;
+    if (valor >= t[1]) return 2;
+    if (valor >= t[2]) return 3;
+    if (valor >= t[3]) return 4;
+    if (valor >= t[4]) return 5;
+    return 6;
+  } else {
+    if (valor <= t[0]) return 1;
+    if (valor <= t[1]) return 2;
+    if (valor <= t[2]) return 3;
+    if (valor <= t[3]) return 4;
+    if (valor <= t[4]) return 5;
+    return 6;
+  }
+}
+
+const SEMAFORO_LABELS = { 1: 'Excelente', 2: 'Bom', 3: 'Regular', 4: 'Atenção', 5: 'Alerta', 6: 'Crítico' };
+
+function semaforoBadge(level) {
+  return `<span class="s-badge s${level}"><span class="dot"></span>${SEMAFORO_LABELS[level]}</span>`;
+}
+
+function semaforoLegenda() {
+  return `<div class="semaforo-legenda">
+    <div class="item"><span class="dot" style="background:var(--s1-excelente)"></span><span class="lbl">Excelente</span></div>
+    <div class="item"><span class="dot" style="background:var(--s2-bom)"></span><span class="lbl">Bom</span></div>
+    <div class="item"><span class="dot" style="background:var(--s3-regular)"></span><span class="lbl">Regular</span></div>
+    <div class="item"><span class="dot" style="background:var(--s4-atencao)"></span><span class="lbl">Precisa de atenção</span></div>
+    <div class="item"><span class="dot" style="background:var(--s5-alerta)"></span><span class="lbl">Muita atenção</span></div>
+    <div class="item"><span class="dot" style="background:var(--s6-critico)"></span><span class="lbl">Crítico — olha pra mim!</span></div>
+  </div>`;
+}
+
+function setFileLabel(key, file) {
+  document.getElementById(`fn-${key}`).textContent = file.name;
+  document.getElementById(`drop-${key}`).classList.add('has-file');
+}
+
+function checkReady() {
+  const ready = !!(state.income || state.balance || state.orders);
+  document.getElementById('btnRun').disabled = !ready;
+  const btn = document.getElementById('btnRun');
+  const n = [state.income, state.balance, state.orders].filter(Boolean).length;
+  if (n === 3) btn.textContent = 'Rodar auditoria completa →';
+  else if (n > 0) btn.textContent = `Rodar com o que tenho (${n}/3) →`;
+  else btn.textContent = 'Rodar auditoria completa →';
+}
+
+function detectFileType(wb) {
+  const names = wb.SheetNames.map(n => n.toLowerCase());
+  if (names.includes('renda') || names.includes('summary')) return 'income';
+  if (names.includes('transaction report')) return 'balance';
+  if (names.includes('orders')) return 'orders';
+  return null; // could still be an ads report we don't recognize the shape of yet
+}
+
+async function processarArquivo(file, key) {
+  if (!file) return;
+  setStatus(`Lendo ${file.name}…`);
+  try {
+    const wb = await Parser.readWorkbook(file);
+    const detected = detectFileType(wb);
+    const finalKey = detected || key; // fall back to the slot clicked/dropped if we can't identify the shape
+
+    if (finalKey !== key) {
+      setStatus(`"${file.name}" foi identificado como ${LABELS[finalKey] || finalKey} e movido para o quadrado certo automaticamente.`);
+    }
+
+    if (finalKey === 'income') state.income = Parser.parseIncome(wb);
+    else if (finalKey === 'balance') state.balance = Parser.parseBalance(wb);
+    else if (finalKey === 'orders') state.orders = Parser.parseOrders(wb);
+    else if (finalKey === 'ads') state.ads = { raw: wb };
+
+    setFileLabel(finalKey, file);
+    if (finalKey === key) setStatus(`${file.name} lido com sucesso.`);
+  } catch (err) {
+    console.error(err);
+    setStatus(`Erro ao ler ${file.name}: ${err.message}`, true);
+  }
+  checkReady();
+}
+
+function wireUpload(key) {
+  const input = document.getElementById(`file-${key}`);
+  const dropZone = document.getElementById(`drop-${key}`);
+
+  input.addEventListener('change', async (e) => {
+    const file = e.target.files[0];
+    await processarArquivo(file, key);
+  });
+
+  // Suporte a arrastar e soltar (drag-and-drop) — funciona em qualquer um dos quadrados,
+  // já que o tipo do arquivo é identificado automaticamente pelo conteúdo (detectFileType).
+  if (dropZone) {
+    let dragCounter = 0;
+    dropZone.addEventListener('dragenter', (e) => {
+      e.preventDefault();
+      dragCounter++;
+      dropZone.classList.add('drag-over');
+    });
+    dropZone.addEventListener('dragover', (e) => {
+      e.preventDefault();
+    });
+    dropZone.addEventListener('dragleave', (e) => {
+      e.preventDefault();
+      dragCounter = Math.max(0, dragCounter - 1);
+      if (dragCounter === 0) dropZone.classList.remove('drag-over');
+    });
+    dropZone.addEventListener('drop', async (e) => {
+      e.preventDefault();
+      dragCounter = 0;
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files && e.dataTransfer.files[0];
+      if (!file) return;
+      if (!/\.(xlsx|xls|csv)$/i.test(file.name)) {
+        setStatus(`"${file.name}" não parece ser uma planilha (.xlsx/.xls/.csv) — verifique o arquivo.`, true);
+        return;
+      }
+      await processarArquivo(file, key);
+    });
+  }
+}
+
+const LABELS = { income: 'Income (Renda)', balance: 'Extrato da Carteira', orders: 'Pedidos (Orders)', ads: 'Relatório de Ads' };
+
+function setStatus(msg, isErr = false) {
+  const el = document.getElementById('statusLine');
+  el.textContent = msg;
+  el.classList.toggle('err', isErr);
+}
+
+/* ====================== AUTENTICAÇÃO E PLANO REAL DA CONTA ====================== */
+
+async function initAuth() {
+  const usaSupabase = AuthUtils.configurado();
+
+  if (!usaSupabase) {
+    // Modo de teste/desenvolvimento: Supabase ainda não configurado.
+    // Mantém o seletor manual de plano (Free/Iniciante/Pro) já existente, sem exigir login.
+    document.getElementById('uploadStage').style.display = 'block';
+    return;
+  }
+
+  document.getElementById('authLoadingScreen').style.display = 'block';
+  const session = await AuthUtils.exigirLogin('login.html');
+  if (!session) return; // já redirecionou para o login
+
+  const perfil = await AuthUtils.getPerfilAtual();
+  if (!perfil) {
+    document.getElementById('authLoadingScreen').textContent = 'Não foi possível carregar seu perfil. Tente recarregar a página.';
+    document.getElementById('authLoadingScreen').style.display = 'block';
+    return;
+  }
+
+  currentPlan = perfil.plano || 'free';
+
+  // ✅ CALCULADORA DESBLOQUEADA: Disponível para TODOS os usuários
+  const btnCalculadora = document.getElementById('btnCalculadora');
+  if (btnCalculadora) {
+    btnCalculadora.style.display = 'inline-block'; // Sempre visível, sem bloqueios de plano
+  }
+
+  // Conta logada: esconde o seletor manual de teste e mostra o pill da conta real.
+  document.getElementById('planSwitcher').style.display = 'none';
+  const pill = document.getElementById('accountPill');
+  pill.style.display = 'flex';
+  document.getElementById('accountEmail').textContent = perfil.email;
+  const tag = document.getElementById('accountPlanTag');
+  tag.textContent = AuthUtils.PLAN_LABELS[currentPlan] + (perfil.plano_anual ? ' anual' : '');
+  tag.className = `account-plan-tag ${currentPlan}`;
+
+  document.getElementById('uploadStage').style.display = 'block';
+  document.getElementById('authLoadingScreen').style.display = 'none';
+}
+
+document.getElementById('uploadStage').style.display = 'none';
+initAuth();
+
+['income', 'balance', 'orders', 'ads'].forEach(k => wireUpload(k));
+
+document.getElementById('btnRun').addEventListener('click', () => runAudit());
+document.getElementById('resetLink').addEventListener('click', () => {
+  document.getElementById('dashboard').style.display = 'none';
+  document.getElementById('uploadStage').style.display = 'block';
+  window.scrollTo(0, 0);
+});
+
+document.getElementById('toggleHistorico').addEventListener('click', () => {
+  const content = document.getElementById('historicoContent');
+  const btn = document.getElementById('toggleHistorico');
+  const isHidden = content.style.display === 'none';
+  content.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? 'ocultar histórico ↑' : 'mostrar histórico ↓';
+});
+
+document.getElementById('btnDemo').addEventListener('click', () => {
+  setStatus('Dados de exemplo ainda não embutidos — envie seus relatórios reais para rodar a auditoria.');
+});
+
+// Função para abrir a calculadora
+function abrirCalculadora() {
+  window.location.href = 'https://auditoriapro.netlify.app/calculadora-shopee-original.html';
+}
+
+/* ====================== PROTEÇÃO CONTRA DOM GIGANTE ====================== */
+
+// Monitorar tamanho do DOM e limpar se ficar muito grande
+setInterval(() => {
+  const elementCount = document.querySelectorAll('*').length;
+  if (elementCount > 5000) {
+    console.warn('⚠️ DOM muito grande:', elementCount, 'elementos. Limpando cache...');
+    // Limpar histórico se tiver muitos itens
+    const hist = getHistorico();
+    if (hist.length > 100) {
+      localStorage.setItem('historicoAuditoria', JSON.stringify(hist.slice(-50)));
+      console.log('✅ Histórico reduzido de', hist.length, 'para 50 itens');
+    }
+    // Forçar reload se realmente grave
+    if (elementCount > 10000) {
+      alert('Dados acumulados muito grandes. Recarregando página...');
+      location.reload();
+    }
+  }
+}, 5000);
+
+/* ====================== RENDERIZAÇÃO SEGURA ====================== */
+
+const HELP_GUIDES = {
+  income: {
+    title: 'Income (Renda)',
+    sub: 'Central do Vendedor → Minha Renda',
+    steps: [
+      'Acesse <code>seller.shopee.com.br</code> no computador e faça login na sua loja.',
+      'No menu lateral, clique em <code>Minha Renda</code> (às vezes aparece em "Finanças" ou "Pagamentos", dependendo da versão do menu).',
+      'Você verá abas como "Pendente" e "Completos" — escolha o período de datas que quer auditar (ex: 01/06 a 27/06).',
+      'Procure o botão de exportar/download da planilha (geralmente no canto superior direito da tabela). A Shopee gera um <code>.xlsx</code> com as abas Summary, Renda, Adjustment, entre outras.',
+      'Baixe o arquivo sem abrir ou editar nele antes — qualquer alteração de coluna pode quebrar a leitura automática.'
+    ],
+    note: 'Esse é o relatório mais importante: ele mostra exatamente quanto foi liberado, taxas cobradas e ajustes/reembolsos.'
+  },
+  balance: {
+    title: 'Extrato da Carteira',
+    sub: 'Central do Vendedor → Carteira do Vendedor / Saldo do Vendedor',
+    steps: [
+      'No menu lateral da Central do Vendedor, procure por <code>Carteira do Vendedor</code> ou, dentro de <code>Meus Relatórios</code>, o relatório chamado "Saldo do Vendedor" / "Balance".',
+      'Selecione o período desejado.',
+      'Use a opção de exportar/baixar relatório — o arquivo gerado tem uma aba única chamada "Transaction Report", com todas as entradas e saídas (saques, recargas de Ads, etc).',
+    ],
+    note: 'É esse arquivo que mostra quanto efetivamente entrou e saiu da sua carteira — incluindo saques e gasto com anúncios.'
+  },
+  orders: {
+    title: 'Pedidos (Orders)',
+    sub: 'Central do Vendedor → Meus Pedidos / Meus Relatórios',
+    steps: [
+      'No menu lateral, abaixo de "Loja", clique em <code>Meus Relatórios</code>.',
+      'Escolha o tipo de relatório "Pedidos".',
+      'Defina o intervalo de datas — atenção: a Shopee só mantém disponível os relatórios dos últimos 6 meses.',
+      'Exporte como planilha. O arquivo final tem uma aba chamada "orders" com uma linha por item vendido (se um pedido tem 3 produtos diferentes, ele aparece em 3 linhas).'
+    ],
+    note: 'Esse relatório é a base para contar pedidos, status (cancelado, enviado, concluído etc.) e valores por venda.'
+  },
+  ads: {
+    title: 'Relatório de Ads',
+    sub: 'Shopee Ads → Relatórios de desempenho',
+    steps: [
+      'Na Central do Vendedor, acesse a seção <code>Shopee Ads</code> (ícone de megafone, geralmente no menu lateral ou no topo).',
+      'Procure por "Relatórios" ou "Desempenho da Campanha".',
+      'Selecione o período e exporte os dados de gasto/consumo diário.'
+    ],
+    note: 'Este relatório é opcional no app — hoje o gasto com Ads já é estimado a partir das recargas visíveis no Extrato da Carteira. Enviar este relatório deixa a análise de Ads mais detalhada (por campanha), mas não é bloqueante.'
+  }
+};
+
+function openHelpModal(key) {
+  const g = HELP_GUIDES[key];
+  if (!g) return;
+  const html = `
+    <h3>${g.title}</h3>
+    <div class="modal-sub">${g.sub}</div>
+    ${g.steps.map((s, i) => `<div class="step"><div class="n">${i+1}</div><p>${s}</p></div>`).join('')}
+    <div class="modal-note">${g.note}</div>
+  `;
+  document.getElementById('helpModalContent').innerHTML = html;
+  document.getElementById('helpModal').style.display = 'flex';
+}
+function closeHelpModal() {
+  document.getElementById('helpModal').style.display = 'none';
+}
+
+document.querySelectorAll('.help-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    openHelpModal(btn.dataset.help);
+  });
+});
+document.getElementById('helpModalClose').addEventListener('click', closeHelpModal);
+document.getElementById('helpModal').addEventListener('click', (e) => {
+  if (e.target.id === 'helpModal') closeHelpModal();
+});
+
+function showLoader(msg) {
+  document.getElementById('loader').style.display = 'flex';
+  document.getElementById('loaderMsg').textContent = msg;
+}
+function hideLoader() { document.getElementById('loader').style.display = 'none'; }
+
+/* ====================== ORCHESTRATION ====================== */
+
+function runAudit() {
+  showLoader('Reconstruindo a vida financeira da conta…');
+  setTimeout(() => {
+    try {
+      const model = buildModel(state.income, state.balance, state.orders);
+      window.lastModel = model;
+      renderAll(model);
+      salvarNoHistorico(model);
+      renderHistorico();
+      document.getElementById('uploadStage').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      document.getElementById('storePill').style.display = 'flex';
+      document.getElementById('storeName').textContent = model.meta.seller || '—';
+      window.scrollTo(0, 0);
+    } catch (err) {
+      console.error(err);
+      alert('Erro ao processar os relatórios: ' + err.message + '\n\nVerifique se os arquivos são os relatórios originais exportados do Seller Center, sem edições de estrutura.');
+    } finally {
+      hideLoader();
+    }
+  }, 150);
+}
+
+/* ====================== HISTÓRICO LOCAL (localStorage) ====================== */
+
+const HISTORICO_KEY = 'auditoria_shopee_historico_v1';
+const HISTORICO_MAX = 24; // guarda até 24 auditorias (2 anos de uso mensal)
+
+function getHistorico() {
+  try {
+    const raw = localStorage.getItem(HISTORICO_KEY);
+    if (!raw) return [];
+    
+    let hist = JSON.parse(raw);
+    
+    // ✅ PROTEÇÃO AGRESSIVA: Máximo 5 itens
+    if (Array.isArray(hist) && hist.length > 5) {
+      console.warn(`⚠️ Histórico reduzido: ${hist.length} → 5 itens`);
+      hist = hist.slice(-5);
+      localStorage.setItem(HISTORICO_KEY, JSON.stringify(hist));
+    }
+    
+    return hist || [];
+  } catch (err) {
+    console.error('Não foi possível ler o histórico local:', err);
+    localStorage.removeItem(HISTORICO_KEY); // Limpar se corrupto
+    return [];
+  }
+}
+
+function salvarNoHistorico(m) {
+  try {
+    const hist = getHistorico();
+    const entry = {
+      id: Date.now(),
+      criadoEm: new Date().toISOString(),
+      seller: m.meta.seller || 'Loja',
+      periodoFrom: m.meta.periodFrom,
+      periodoTo: m.meta.periodTo,
+      gmv: m.vendas.gmv,
+      receitaLiquida: m.receita.receitaLiquida,
+      margem: m.vendas.gmv ? m.receita.receitaLiquida / m.vendas.gmv : 0,
+      ticketMedio: m.vendas.ticketMedio,
+      totalPedidos: m.overview.totalPedidos,
+      pedidosAtivos: m.overview.ativos,
+      pedidosCancelados: m.overview.cancelados,
+      totalDescontos: Math.abs(m.descontos.totalNeg),
+      totalPendente: m.pendentes.total,
+      totalSacado: m.saude.totalSacado,
+      saldoCarteira: m.saude.saldoNaCarteira,
+      gastoAds: m.ads.recargaTotal
+    };
+    // evita duplicar se o mesmo período exato já estiver salvo (sobrescreve)
+    const filtrado = hist.filter(h => !(h.periodoFrom === entry.periodoFrom && h.periodoTo === entry.periodoTo && h.seller === entry.seller));
+    filtrado.unshift(entry);
+    const limitado = filtrado.slice(0, HISTORICO_MAX);
+    localStorage.setItem(HISTORICO_KEY, JSON.stringify(limitado));
+  } catch (err) {
+    console.error('Não foi possível salvar no histórico local:', err);
+  }
+}
+
+function excluirDoHistorico(id) {
+  const hist = getHistorico().filter(h => h.id !== id);
+  localStorage.setItem(HISTORICO_KEY, JSON.stringify(hist));
+  renderHistorico();
+}
+
+function renderHistorico() {
+  const hist = getHistorico(); // Já retorna máx 5 itens
+  const container = document.getElementById('historicoContent');
+  if (!container) return;
+
+  if (!hist.length) {
+    container.innerHTML = `<div class="empty-note">Nenhuma auditoria anterior. Após rodar uma auditoria, ela aparecerá aqui (últimas 5 salvas).</div>`;
+    return;
+  }
+
+  // Mostrar apenas os 5 últimos em ordem reversa (mais recentes primeiro)
+  const linhasTabela = [...hist].reverse().map(h => `
+    <tr>
+      <td>${esc(h.seller)}</td>
+      <td><span style="font-family:var(--mono); font-size:12px;">${esc(h.periodoFrom)} → ${esc(h.periodoTo)}</span></td>
+      <td class="num">${BRL(h.gmv)}</td>
+      <td class="num">${BRL(h.receitaLiquida)}</td>
+      <td class="num">${pct(h.margem)}</td>
+      <td class="num">${h.pedidosAtivos}</td>
+      <td><button class="hist-del-btn" data-id="${h.id}" title="Remover">remover</button></td>
+    </tr>`).join('');
+
+  container.innerHTML = `
+    <div class="tbl-wrap" style="max-height:400px; overflow-y:auto;">
+      <table class="data">
+        <thead><tr><th>Loja</th><th>Período</th><th>GMV</th><th>Receita Líquida</th><th>Margem</th><th>Pedidos ativos</th><th></th></tr></thead>
+        <tbody>${linhasTabela}</tbody>
+      </table>
+    </div>
+    <p class="hist-disclaimer">Histórico local (últimas 5 auditorias). Salvo apenas neste navegador.</p>
+  `;
+
+  container.querySelectorAll('.hist-del-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      if (confirm('Remover?')) excluirDoHistorico(Number(btn.dataset.id));
+    });
+  });
+}
+
+/* ====================== DATA MODEL ====================== */
+
+const PENDING_STATUSES_PREFIX = 'O comprador pode pedir uma devolução até';
+
+function classifyStatus(status) {
+  if (!status) return 'outro';
+  if (status === 'Cancelado') return 'cancelado';
+  if (status === 'Concluído') return 'concluido';
+  if (status === 'Enviado') return 'enviado';
+  if (status === 'Entregue') return 'entregue';
+  if (status === 'A Enviar') return 'a_enviar';
+  if (status.startsWith(PENDING_STATUSES_PREFIX)) return 'janela_devolucao';
+  return 'outro';
+}
+
+const EMPTY_INCOME = { meta: {}, summary: {}, rendaRows: [], serviceFeeRows: [], adjustmentRows: [], adjustmentTotal: 0, shippingDiscrepancyRows: [] };
+const EMPTY_BALANCE = { meta: {}, entradaTotal: 0, saidaTotal: 0, transactions: [] };
+const EMPTY_ORDERS = { lineItems: [], orders: [] };
+
+function buildModel(incomeIn, balanceIn, ordersIn) {
+  const available = { income: !!incomeIn, balance: !!balanceIn, orders: !!ordersIn };
+  const income = incomeIn || EMPTY_INCOME;
+  const balance = balanceIn || EMPTY_BALANCE;
+  const orders = ordersIn || EMPTY_ORDERS;
+
+  const allOrders = orders.orders;
+
+  const cancelados = allOrders.filter(o => classifyStatus(o.status) === 'cancelado');
+  const ativos = allOrders.filter(o => classifyStatus(o.status) !== 'cancelado');
+
+  // -------- status distribution --------
+  const statusCounts = {};
+  allOrders.forEach(o => {
+    const c = classifyStatus(o.status);
+    statusCounts[c] = (statusCounts[c] || 0) + 1;
+  });
+
+  // -------- vendas brutas --------
+  const valoresAtivos = ativos.map(o => o.valorTotal).filter(v => v > 0);
+  const gmv = valoresAtivos.reduce((a, b) => a + b, 0);
+  const ticketMedio = valoresAtivos.length ? gmv / valoresAtivos.length : 0;
+  const maiorVenda = valoresAtivos.length ? Math.max(...valoresAtivos) : 0;
+  const menorVenda = valoresAtivos.length ? Math.min(...valoresAtivos) : 0;
+
+  // -------- income / descontos --------
+  const S = income.summary;
+  const descontos = {
+    'Taxa de comissão líquida': S.taxaComissaoLiquida || 0,
+    'Taxa de serviço líquida': S.taxaServicoLiquida || 0,
+    'Taxa de Devolução Fácil Shopee': S.taxaDevolucaoFacil || 0,
+    'Cupom (subsidiado pelo seller)': S.cupomSummary || 0,
+    'Voucher subsidiado pelo Seller': S.voucherSeller || 0,
+    'Promoção do produto': S.promocaoProduto || 0,
+    'Taxa de frete real paga pela Shopee': S.taxaFreteRealShopee || 0,
+    'Taxa de frete paga pelo comprador (repasse)': S.taxaFretePagaComprador || 0,
+    'Desconto de frete pela Shopee': S.descontoFreteShopee || 0,
+    'Dedução de AMP': S.deducaoAMP || 0,
+    'Reembolsos (Valor do Reembolso)': S.valorReembolsoSummary || 0
+  };
+  const descontosNegativos = Object.entries(descontos).filter(([k, v]) => v < 0);
+  const totalDescontosNeg = descontosNegativos.reduce((a, [, v]) => a + v, 0);
+
+  const receitaTotal = S.receitaTotal || 0;
+  const subtotalProdutos = S.subtotalProdutos || 0;
+  const despesasTotais = S.despesasTotais || 0;
+  const quantidadeLiberada = S.quantidadeTotalLiberada || 0;
+  const receitaLiquida = receitaTotal + despesasTotais; // despesas já são negativas
+
+  // -------- carteira --------
+  const txs = balance.transactions;
+  const entradasTx = txs.filter(t => t.direcao === 'Entrada');
+  const saidasTx = txs.filter(t => t.direcao === 'Saída');
+
+  const byTipo = (list) => {
+    const m = {};
+    list.forEach(t => { m[t.tipo] = (m[t.tipo] || 0) + t.valor; });
+    return m;
+  };
+  const entradasPorTipo = byTipo(entradasTx);
+  const saidasPorTipo = byTipo(saidasTx);
+
+  const saques = txs.filter(t => t.tipo === 'Saques');
+  const totalSacado = saques.reduce((a, t) => a + t.valor, 0);
+  const adsTx = txs.filter(t => t.tipo === 'Saldo da Carteira - Pagamento');
+  const totalAdsGasto = adsTx.reduce((a, t) => a + t.valor, 0);
+  const ajusteTx = txs.filter(t => t.tipo === 'Ajuste');
+  const totalAjusteCarteira = ajusteTx.reduce((a, t) => a + t.valor, 0);
+
+  const saldoFinal = txs.length ? txs[0].saldoApos : 0; // first row = most recent
+  const sortedTxAsc = [...txs].sort((a, b) => (a.data || 0) - (b.data || 0));
+  const saldoInicial = sortedTxAsc.length ? (sortedTxAsc[0].saldoApos - sortedTxAsc[0].valor) : 0;
+
+  // fluxo por dia
+  const porDia = {};
+  txs.forEach(t => {
+    const d = t.dataStr;
+    if (!porDia[d]) porDia[d] = { entrada: 0, saida: 0 };
+    if (t.direcao === 'Entrada') porDia[d].entrada += t.valor;
+    else porDia[d].saida += Math.abs(t.valor);
+  });
+  const dias = Object.keys(porDia).sort();
+
+  const saldoAcumSeries = sortedTxAsc.map(t => ({ data: t.dataStr, saldo: t.saldoApos }));
+
+  // -------- pendentes (pedidos ativos sem renda lançada ainda) --------
+  const ordersComRenda = new Set(income.rendaRows.map(r => r.orderId));
+  const pendentes = ativos.filter(o => !ordersComRenda.has(o.orderId));
+  const totalPendente = pendentes.reduce((a, o) => a + o.totalGlobal, 0);
+
+  const pendentesPorCategoria = { iniciado: 0, aguardandoConclusao: 0, aguardandoEntrega: 0, aguardandoDevolucao: 0 };
+  pendentes.forEach(o => {
+    const c = classifyStatus(o.status);
+    if (c === 'a_enviar') pendentesPorCategoria.iniciado += o.totalGlobal;
+    else if (c === 'concluido') pendentesPorCategoria.aguardandoConclusao += o.totalGlobal;
+    else if (c === 'enviado' || c === 'entregue') pendentesPorCategoria.aguardandoEntrega += o.totalGlobal;
+    else if (c === 'janela_devolucao') pendentesPorCategoria.aguardandoDevolucao += o.totalGlobal;
+  });
+
+  // -------- cancelados detalhe --------
+  const canceladosDetalhe = cancelados.map(o => ({
+    orderId: o.orderId,
+    motivo: o.cancelMotivo,
+    valor: o.valorTotal || 0
+  }));
+  const totalCancelado = canceladosDetalhe.reduce((a, c) => a + c.valor, 0);
+  const motivosCancelamento = {};
+  canceladosDetalhe.forEach(c => {
+    const key = c.motivo || 'Não informado';
+    motivosCancelamento[key] = (motivosCancelamento[key] || 0) + 1;
+  });
+
+  // -------- devoluções --------
+  const devolucoesOrders = allOrders.filter(o => o.statusDevolucao || classifyStatus(o.status) === 'janela_devolucao');
+  const devolucoesAprovadas = allOrders.filter(o => o.statusDevolucao === 'Solicitação aprovada');
+  const totalReembolsoIncome = Math.abs(income.adjustmentTotal || 0);
+
+  // -------- ads --------
+  const adsRecargaTotal = Math.abs(totalAdsGasto);
+  const cac = ativos.length ? adsRecargaTotal / ativos.length : 0;
+  const participacaoAds = gmv ? adsRecargaTotal / gmv : 0;
+
+  // -------- conciliação --------
+  const gmvAtivosTotalGlobal = ativos.reduce((a, o) => a + o.totalGlobal, 0);
+  const somaRendaLancada = income.rendaRows.reduce((a, r) => a + r.quantiaLancada, 0);
+  const somaEntradaCarteiraRenda = entradasTx.filter(t => t.tipo === 'Renda do pedido').reduce((a, t) => a + t.valor, 0);
+
+  const diffIncomeXCarteira = +(somaRendaLancada - somaEntradaCarteiraRenda).toFixed(2);
+  const diffQtdLiberadaXEntradaTotal = +(quantidadeLiberada - balance.entradaTotal).toFixed(2);
+
+  const orderIdsOrders = new Set(ativos.map(o => o.orderId));
+  const incomeOrdersNotInOrders = income.rendaRows.filter(r => !orderIdsOrders.has(r.orderId));
+
+  // -------- fluxo de caixa categorizado --------
+  const fluxoCaixa = {
+    entradas: {
+      'Renda de pedidos (recebimentos)': entradasPorTipo['Renda do pedido'] || 0,
+      'Outras entradas': Object.entries(entradasPorTipo).filter(([k]) => k !== 'Renda do pedido').reduce((a, [, v]) => a + v, 0)
+    },
+    saidas: {
+      'Saques': Math.abs(saidasPorTipo['Saques'] || 0),
+      'Anúncios (Shopee Ads)': Math.abs(saidasPorTipo['Saldo da Carteira - Pagamento'] || 0),
+      'Ajustes / estornos': Math.abs((saidasPorTipo['Ajuste'] || 0) + (saidasPorTipo['Renda do pedido'] || 0))
+    }
+  };
+  const totalEntradasCaixa = Object.values(fluxoCaixa.entradas).reduce((a, b) => a + b, 0);
+  const totalSaidasCaixa = Object.values(fluxoCaixa.saidas).reduce((a, b) => a + b, 0);
+
+  // -------- saúde financeira --------
+  const pctVirouDinheiro = gmv ? quantidadeLiberada / gmv : 0;
+  const pctPresoNaShopee = gmv ? totalPendente / gmv : 0;
+  const saldoNaCarteira = saldoFinal;
+
+  return {
+    available,
+    meta: {
+      seller: income.meta.seller || balance.meta.seller,
+      periodFrom: income.meta.periodFrom || balance.meta.periodFrom,
+      periodTo: income.meta.periodTo || balance.meta.periodTo,
+      bankAccount: income.meta.bankAccount,
+      bankName: income.meta.bankName
+    },
+    overview: {
+      totalPedidos: allOrders.length,
+      statusCounts,
+      cancelados: cancelados.length,
+      ativos: ativos.length
+    },
+    vendas: { gmv, qtd: valoresAtivos.length, ticketMedio, maiorVenda, menorVenda },
+    descontos: { items: descontos, totalNeg: totalDescontosNeg, subtotalProdutos, taxaComissaoBruta: S.taxaComissaoBruta, taxaServicoBruta: S.taxaServicoBruta },
+    receita: { receitaTotal, despesasTotais, receitaLiquida, quantidadeLiberada, subtotalProdutos },
+    carteira: {
+      entradaTotal: balance.entradaTotal, saidaTotal: balance.saidaTotal,
+      saldoInicial, saldoFinal, totalSacado, totalAdsGasto, totalAjusteCarteira,
+      entradasPorTipo, saidasPorTipo, porDia, dias, saldoAcumSeries,
+      nTransacoes: txs.length
+    },
+    pendentes: { list: pendentes, total: totalPendente, porCategoria: pendentesPorCategoria },
+    cancelados: { list: canceladosDetalhe, total: totalCancelado, motivos: motivosCancelamento },
+    devolucoes: { list: devolucoesOrders, aprovadas: devolucoesAprovadas, totalReembolsoIncome },
+    ads: { recargaTotal: adsRecargaTotal, cac, participacao: participacaoAds, hasReport: !!state.ads },
+    conciliacao: {
+      gmvAtivosTotalGlobal, somaRendaLancada, somaEntradaCarteiraRenda,
+      diffIncomeXCarteira, diffQtdLiberadaXEntradaTotal, quantidadeLiberada,
+      entradaCarteiraTotal: balance.entradaTotal, incomeOrdersNotInOrders
+    },
+    fluxoCaixa: { ...fluxoCaixa, totalEntradasCaixa, totalSaidasCaixa, saldoFinal: totalEntradasCaixa - totalSaidasCaixa },
+    saude: { pctVirouDinheiro, pctPresoNaShopee, saldoNaCarteira, totalSacado: Math.abs(totalSacado) },
+    raw: { allOrders, ativos, cancelados, lineItems: orders.lineItems, txs, rendaRows: income.rendaRows, adjustmentRows: income.adjustmentRows, shippingDiscrepancyRows: income.shippingDiscrepancyRows }
+  };
+}
+
+/* ====================== RENDER ====================== */
+
+function applySectionVisibility(m) {
+  document.querySelectorAll('section.block[data-requires]').forEach(sec => {
+    const reqs = sec.dataset.requires.split(',').filter(Boolean);
+    const dadosOk = reqs.every(r => m.available[r]);
+    const planMin = sec.dataset.planMin;
+    const planOk = !planMin || PLAN_ORDER[currentPlan] >= PLAN_ORDER[planMin];
+
+    const wrapEl = sec.querySelector(':scope > .wrap');
+    sec.querySelectorAll('.blur-overlay').forEach(p => p.remove());
+    if (wrapEl) wrapEl.classList.remove('content-blurred');
+
+    if (!dadosOk) {
+      sec.style.display = 'none';
+    } else if (!planOk) {
+      sec.style.display = '';
+      if (wrapEl) {
+        wrapEl.style.display = '';
+        wrapEl.classList.add('content-blurred');
+        const overlay = document.createElement('div');
+        overlay.className = 'blur-overlay';
+        overlay.innerHTML = `
+          <div class="blur-overlay-card">
+            <div class="blur-overlay-icon">🔒</div>
+            <strong>Conteúdo exclusivo dos planos pagos</strong>
+            <p>Assine o Iniciante ou o Pro para liberar esta seção e o restante da auditoria completa.</p>
+            <a href="index.html?destino=iniciante#planos" class="blur-overlay-btn">Ver planos →</a>
+          </div>`;
+        sec.style.position = 'relative';
+        sec.appendChild(overlay);
+      }
+    } else {
+      sec.style.display = '';
+      if (wrapEl) wrapEl.style.display = '';
+    }
+  });
+}
+
+function setPlan(plan) {
+  currentPlan = plan;
+  document.querySelectorAll('#planSwitcher button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.plan === plan);
+  });
+  if (window.lastModel) applySectionVisibility(window.lastModel);
+}
+
+document.querySelectorAll('#planSwitcher button').forEach(btn => {
+  btn.addEventListener('click', () => setPlan(btn.dataset.plan));
+});
+
+function renderAll(m) {
+  document.getElementById('bannerStore').textContent = m.meta.seller || '—';
+  document.getElementById('bannerPeriod').textContent = `${m.meta.periodFrom || '?'} → ${m.meta.periodTo || '?'}`;
+
+  applySectionVisibility(m);
+
+  const missing = ['income', 'balance', 'orders'].filter(k => !m.available[k]);
+  const banner = document.getElementById('partialBanner');
+  if (missing.length) {
+    const labelsPt = { income: 'Income (Renda)', balance: 'Extrato da Carteira', orders: 'Pedidos (Orders)' };
+    banner.style.display = 'block';
+    banner.innerHTML = `<strong>Auditoria parcial.</strong> Sem o relatório de ${missing.map(k=>labelsPt[k]).join(' e ')}, algumas seções abaixo foram ocultadas porque dependem desses dados. Envie ${missing.length>1?'esses relatórios':'esse relatório'} para liberar a auditoria completa.`;
+  } else {
+    banner.style.display = 'none';
+  }
+
+  const renderers = [
+    renderOverview, renderVendas, renderDescontos, renderReceitaLiquida, renderCarteira,
+    renderPendentes, renderCancelados, renderDevolucoes, renderAds, renderConciliacao,
+    renderFluxoCaixa, renderPrevisao, renderSaude, renderKPIs, renderAuditoria, renderExecutivo
+  ];
+  renderers.forEach(fn => {
+    try { fn(m); } catch (err) { console.error(`Erro ao renderizar ${fn.name}:`, err); }
+  });
+}
+
+function kpiCard(label, val, sub, cls = '', opts = {}) {
+  const semClass = opts.semaforo ? `has-semaforo s${opts.semaforo}` : '';
+  const helpHtml = opts.help ? helpDot(opts.help) : '';
+  const badgeHtml = opts.semaforo ? `<div style="margin-top:8px;">${semaforoBadge(opts.semaforo)}</div>` : '';
+  return `<div class="kpi ${semClass}"><div class="lbl">${label}${helpHtml}</div><div class="val ${cls}">${val}</div>${sub ? `<div class="sub2">${sub}</div>` : ''}${badgeHtml}</div>`;
+}
+
+function renderOverview(m) {
+  const labels = {
+    concluido: 'Concluído', enviado: 'Enviado', entregue: 'Entregue',
+    a_enviar: 'A enviar', janela_devolucao: 'Janela de devolução', cancelado: 'Cancelado', outro: 'Outro'
+  };
+  const sc = m.overview.statusCounts;
+  document.getElementById('kpiOverview').innerHTML = [
+    kpiCard('Total de pedidos', m.overview.totalPedidos),
+    kpiCard('Pedidos ativos', m.overview.ativos, `${m.overview.cancelados} cancelados`, 'moss'),
+    kpiCard('Aguardando finalização', (sc.enviado||0)+(sc.entregue||0)+(sc.a_enviar||0)+(sc.janela_devolucao||0)),
+    kpiCard('Período', `${m.meta.periodFrom || ''}`, `até ${m.meta.periodTo || ''}`)
+  ].join('');
+
+  const total = m.overview.totalPedidos || 1;
+  const order = ['concluido','enviado','entregue','janela_devolucao','a_enviar','cancelado','outro'];
+  document.getElementById('statusBreakdown').innerHTML = order.filter(k => sc[k]).map(k => `
+    <div class="breakdown-row">
+      <div class="name">${labels[k]}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(sc[k]/total*100).toFixed(0)}%"></div></div>
+      <div class="amt">${sc[k]}</div>
+    </div>`).join('');
+
+  renderChart('chartStatus', 'doughnut', {
+    labels: order.filter(k => sc[k]).map(k => labels[k]),
+    datasets: [{ data: order.filter(k => sc[k]).map(k => sc[k]),
+      backgroundColor: ['#3F5B43','#C2552F','#B6862C','#766F5E','#8C8570','#A3331F','#DCD3C2'] }]
+  }, { plugins: { legend: { position: 'bottom', labels: { font: { family: 'Inter', size: 11 } } } } });
+}
+
+function renderVendas(m) {
+  const v = m.vendas;
+  document.getElementById('kpiVendas').innerHTML = [
+    kpiCard('Valor bruto vendido (GMV)', BRL(v.gmv), `${v.qtd} pedidos`, 'rust'),
+    kpiCard('Ticket médio', BRL(v.ticketMedio)),
+    kpiCard('Maior venda', BRL(v.maiorVenda)),
+    kpiCard('Menor venda', BRL(v.menorVenda))
+  ].join('');
+}
+
+function renderDescontos(m) {
+  const d = m.descontos;
+  const entries = Object.entries(d.items).filter(([k, v]) => v !== 0);
+  const maxAbs = Math.max(...entries.map(([, v]) => Math.abs(v)), 1);
+  document.getElementById('descontosBreakdown').innerHTML = entries.map(([k, v]) => `
+    <div class="breakdown-row">
+      <div class="name">${k}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${(Math.abs(v)/maxAbs*100).toFixed(0)}%; background:${v<0?'var(--rust)':'var(--moss)'}"></div></div>
+      <div class="amt" style="color:${v<0?'var(--red-flag)':'var(--green-flag)'}">${BRL(v)}</div>
+    </div>`).join('') + `
+    <div class="breakdown-row total">
+      <div class="name">Total de descontos</div><div></div>
+      <div class="amt" style="color:var(--red-flag)">${BRL(d.totalNeg)}</div>
+    </div>`;
+
+  const negEntries = entries.filter(([, v]) => v < 0);
+  renderChart('chartTaxas', 'bar', {
+    labels: negEntries.map(([k]) => k),
+    datasets: [{ label: 'Valor (R$)', data: negEntries.map(([, v]) => Math.abs(v)), backgroundColor: '#C2552F' }]
+  }, { indexAxis: 'y', plugins: { legend: { display: false } }, scales: { x: { ticks: { font: { size: 10 } } }, y: { ticks: { font: { size: 10.5 } } } } });
+}
+
+function renderReceitaLiquida(m) {
+  const r = m.receita;
+  const tbl = document.getElementById('tblReceitaLiquida');
+  tbl.innerHTML = `
+    <tbody>
+      <tr><td>Receita Bruta (Receita Total declarada no Income)</td><td class="num pos">${BRL(r.receitaTotal)}</td></tr>
+      <tr><td>(–) Despesas Totais (taxas, descontos, frete)</td><td class="num neg">${BRL(r.despesasTotais)}</td></tr>
+    </tbody>
+    <tfoot><tr><td>Receita Líquida (Quantidade Total Liberada)</td><td class="num">${BRL(r.receitaLiquida)}</td></tr></tfoot>`;
+}
+
+function renderCarteira(m) {
+  const c = m.carteira;
+  document.getElementById('kpiCarteira').innerHTML = [
+    kpiCard('Entrada total', BRL(c.entradaTotal), `${c.nTransacoes} transações no período`, 'moss'),
+    kpiCard('Saída total', BRL(c.saidaTotal), '', 'rust'),
+    kpiCard('Total sacado', BRL(Math.abs(c.totalSacado))),
+    kpiCard('Saldo final na carteira', BRL(c.saldoFinal))
+  ].join('');
+
+  const entradaLabels = Object.entries(c.entradasPorTipo);
+  const saidaLabels = Object.entries(c.saidasPorTipo);
+  document.getElementById('carteiraBreakdown').innerHTML =
+    entradaLabels.map(([k, v]) => `
+      <div class="breakdown-row"><div class="name">↑ ${k}</div><div></div><div class="amt" style="color:var(--green-flag)">${BRL(v)}</div></div>`).join('') +
+    saidaLabels.map(([k, v]) => `
+      <div class="breakdown-row"><div class="name">↓ ${k}</div><div></div><div class="amt" style="color:var(--red-flag)">${BRL(v)}</div></div>`).join('');
+
+  renderChart('chartFluxoDia', 'bar', {
+    labels: c.dias,
+    datasets: [
+      { label: 'Entradas', data: c.dias.map(d => c.porDia[d].entrada), backgroundColor: '#3F5B43' },
+      { label: 'Saídas', data: c.dias.map(d => -c.porDia[d].saida), backgroundColor: '#C2552F' }
+    ]
+  }, { scales: { x: { ticks: { font: { size: 9 }, maxRotation: 90 } }, y: { ticks: { font: { size: 10 } } } }, plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } } });
+}
+
+function renderPendentes(m) {
+  const p = m.pendentes;
+  document.getElementById('kpiPendentes').innerHTML = [
+    kpiCard('Total pendente', BRL(p.total), `${p.list.length} pedidos`, 'rust'),
+    kpiCard('Aguardando conclusão', BRL(p.porCategoria.aguardandoConclusao)),
+    kpiCard('Aguardando entrega', BRL(p.porCategoria.aguardandoEntrega)),
+    kpiCard('Janela de devolução', BRL(p.porCategoria.aguardandoDevolucao))
+  ].join('');
+
+  const sorted = [...p.list].sort((a, b) => b.totalGlobal - a.totalGlobal);
+  const tbl = document.getElementById('tblPendentes');
+  if (!sorted.length) {
+    tbl.innerHTML = `<tbody><tr><td style="text-align:center; padding:30px; font-family:var(--mono); color:#8C8570;">Nenhum pagamento pendente — todos os pedidos ativos já têm renda lançada.</td></tr></tbody>`;
+    return;
+  }
+  
+  // ✅ LIMITAR A 20 ITENS MÁXIMO
+  const maxItems = 20;
+  const itemsExibidos = sorted.slice(0, maxItems);
+  const totalOculto = sorted.length - maxItems;
+  
+  tbl.innerHTML = `
+    <thead><tr><th>Pedido</th><th>Cliente</th><th>Status</th><th>Valor</th></tr></thead>
+    <tbody>${itemsExibidos.map(o => `
+      <tr><td><span style="font-family:var(--mono); font-size:12px;">${esc(o.orderId)}</span></td>
+      <td>${esc(o.comprador) || '—'}</td>
+      <td><span class="tag warn">${esc(o.status)}</span></td>
+      <td class="num">${BRL(o.totalGlobal)}</td></tr>`).join('')}
+      ${totalOculto > 0 ? `<tr><td colspan="4" style="text-align:center; padding:12px; background:var(--paper-2); font-size:11px; color:#8C8570;">... e mais ${totalOculto} itens</td></tr>` : ''}
+    </tbody>
+    <tfoot><tr><td colspan="3">Total pendente</td><td class="num">${BRL(p.total)}</td></tr></tfoot>`;
+}
+
+function renderCancelados(m) {
+  const c = m.cancelados;
+  document.getElementById('kpiCancelados').innerHTML = [
+    kpiCard('Pedidos cancelados', c.list.length, '', 'rust'),
+    kpiCard('Valor que deixou de entrar', BRL(c.total)),
+    kpiCard('Motivos distintos', Object.keys(c.motivos).length),
+    kpiCard('% do total de pedidos', pct(c.list.length / (m.overview.totalPedidos || 1)))
+  ].join('');
+
+  const tbl = document.getElementById('tblCancelados');
+  if (!c.list.length) {
+    tbl.innerHTML = `<tbody><tr><td style="text-align:center; padding:30px; font-family:var(--mono); color:#8C8570;">Nenhum pedido cancelado no período.</td></tr></tbody>`;
+    return;
+  }
+  
+  // ✅ LIMITAR A 20 ITENS MÁXIMO
+  const maxItems = 20;
+  const itemsExibidos = c.list.slice(0, maxItems);
+  const totalOculto = c.list.length - maxItems;
+  
+  tbl.innerHTML = `
+    <thead><tr><th>Pedido</th><th>Motivo</th><th>Valor</th></tr></thead>
+    <tbody>${itemsExibidos.map(o => `
+      <tr><td><span style="font-family:var(--mono); font-size:12px;">${esc(o.orderId)}</span></td>
+      <td>${esc(o.motivo) || 'Não informado'}</td>
+      <td class="num">${BRL(o.valor)}</td></tr>`).join('')}
+      ${totalOculto > 0 ? `<tr><td colspan="3" style="text-align:center; padding:12px; background:var(--paper-2); font-size:11px; color:#8C8570;">... e mais ${totalOculto} itens</td></tr>` : ''}
+    </tbody>`;
+}
+
+function renderDevolucoes(m) {
+  const d = m.devolucoes;
+  document.getElementById('kpiDevolucoes').innerHTML = [
+    kpiCard('Pedidos em janela/processo de devolução', d.list.length),
+    kpiCard('Devoluções aprovadas', d.aprovadas.length, '', 'rust'),
+    kpiCard('Total reembolsado (via ajuste no Income)', BRL(d.totalReembolsoIncome))
+  ].join('');
+
+  const tbl = document.getElementById('tblDevolucoes');
+  if (!d.list.length) {
+    tbl.innerHTML = `<tbody><tr><td style="text-align:center; padding:30px; font-family:var(--mono); color:#8C8570;">Nenhuma devolução identificada no período.</td></tr></tbody>`;
+    return;
+  }
+  
+  // ✅ LIMITAR A 20 ITENS MÁXIMO
+  const maxItems = 20;
+  const itemsExibidos = d.list.slice(0, maxItems);
+  const totalOculto = d.list.length - maxItems;
+  
+  tbl.innerHTML = `
+    <thead><tr><th>Pedido</th><th>Status</th><th>Valor</th></tr></thead>
+    <tbody>${itemsExibidos.map(o => `
+      <tr><td><span style="font-family:var(--mono); font-size:12px;">${esc(o.orderId)}</span></td>
+      <td><span class="tag ${o.statusDevolucao === 'Solicitação aprovada' ? 'bad' : 'warn'}">${esc(o.statusDevolucao) || esc(o.status)}</span></td>
+      <td class="num">${BRL(o.valorTotal)}</td></tr>`).join('')}
+      ${totalOculto > 0 ? `<tr><td colspan="3" style="text-align:center; padding:12px; background:var(--paper-2); font-size:11px; color:#8C8570;">... e mais ${totalOculto} itens</td></tr>` : ''}
+    </tbody>`;
+}
+
+function renderAds(m) {
+  const a = m.ads;
+  document.getElementById('kpiAds').innerHTML = [
+    kpiCard('Recarga de Ads identificada na carteira', BRL(a.recargaTotal), '', 'rust'),
+    kpiCard('Participação no faturamento', pct(a.participacao)),
+    kpiCard('CAC aproximado', BRL(a.cac), 'por pedido ativo')
+  ].join('');
+  document.getElementById('adsNote').innerHTML = a.hasReport
+    ? `<strong>Nota:</strong> relatório de Ads dedicado foi enviado — os valores acima já consideram apenas as recargas visíveis no extrato da carteira (gasto real debitado), que é a fonte mais confiável de saída de caixa.`
+    : `<strong>Nota:</strong> nenhum relatório de Ads dedicado foi enviado. Os valores acima foram estimados a partir das recargas de "Saldo da Carteira – Pagamento" no extrato da carteira, que representam o gasto real debitado. Para detalhar consumo diário, saldo restante e desempenho por campanha, envie o relatório de Ads do Shopee Seller Center.`;
+}
+
+function renderConciliacao(m) {
+  const c = m.conciliacao;
+  const tbl = document.getElementById('tblConciliacao');
+  const rows = [
+    ['GMV de pedidos ativos (Total global, relatório de Pedidos)', c.gmvAtivosTotalGlobal],
+    ['Soma de "Quantia total lançada" (relatório de Income, aba Renda)', c.somaRendaLancada],
+    ['Quantidade Total Liberada (Income, Summary)', c.quantidadeLiberada],
+    ['Soma de entradas "Renda do pedido" (Extrato da Carteira)', c.somaEntradaCarteiraRenda],
+    ['Entrada total de dinheiro (Extrato da Carteira, resumo)', c.entradaCarteiraTotal]
+  ];
+  tbl.innerHTML = `
+    <thead><tr><th>Fonte</th><th>Valor</th></tr></thead>
+    <tbody>${rows.map(([k, v]) => `<tr><td>${k}</td><td class="num">${BRL(v)}</td></tr>`).join('')}</tbody>`;
+
+  const flags = [];
+  if (Math.abs(c.diffIncomeXCarteira) > 0.5) {
+    flags.push({ type: 'warn', title: `Diferença de ${BRL(c.diffIncomeXCarteira)} entre Income e Carteira`,
+      body: `A soma da "Quantia total lançada" no Income (${BRL(c.somaRendaLancada)}) difere da soma de entradas "Renda do pedido" no extrato da carteira (${BRL(c.somaEntradaCarteiraRenda)}). Isso geralmente ocorre porque o extrato da carteira inclui uma linha de estorno/correção de valor negativo dentro do próprio tipo "Renda do pedido", separada da entrada bruta — confira as transações com valor negativo nesse tipo.` });
+  } else {
+    flags.push({ type: 'ok', title: 'Income e Carteira conciliam', body: `A renda lançada no relatório de Income (${BRL(c.somaRendaLancada)}) confere com as entradas de "Renda do pedido" na carteira, dentro de margem de centavos.` });
+  }
+  if (c.incomeOrdersNotInOrders.length) {
+    const criadosAntes = c.incomeOrdersNotInOrders.filter(r => r.dataCriacao && m.meta.periodFrom && r.dataCriacao < m.meta.periodFrom);
+    const isBorderEffect = criadosAntes.length === c.incomeOrdersNotInOrders.length;
+    flags.push({ type: isBorderEffect ? 'warn' : 'bad',
+      title: `${c.incomeOrdersNotInOrders.length} pedido(s) com Income lançado mas fora do relatório de Pedidos`,
+      body: isBorderEffect
+        ? `Efeito de borda entre relatórios, não uma inconsistência real: todos esses ${c.incomeOrdersNotInOrders.length} pedidos foram <strong>criados antes de ${m.meta.periodFrom}</strong> (em maio), mas tiveram a renda <strong>liberada dentro da janela analisada</strong>. Como o relatório de Pedidos foi exportado apenas para o período de ${m.meta.periodFrom} a ${m.meta.periodTo}, esses pedidos antigos não aparecem nele — mas corretamente aparecem no Income, que reflete a data de liberação, não a de criação. IDs: ${c.incomeOrdersNotInOrders.slice(0,8).map(r=>r.orderId).join(', ')}${c.incomeOrdersNotInOrders.length>8?'…':''}.`
+        : `IDs: ${c.incomeOrdersNotInOrders.slice(0,10).map(r=>r.orderId).join(', ')}${c.incomeOrdersNotInOrders.length>10?'…':''}. Parte desses pedidos não tem data de criação anterior ao período — vale exportar também o relatório de Pedidos do mês anterior para confirmar a origem.` });
+  }
+  document.getElementById('conciliacaoFlags').innerHTML = flags.map(renderFlag).join('');
+}
+
+function renderFlag(f) {
+  const icon = f.type === 'ok' ? '✓' : f.type === 'warn' ? '!' : '✕';
+  return `<div class="audit-flag ${f.type}"><div class="icon">${icon}</div><div class="body"><strong>${f.title}</strong><p>${f.body}</p></div></div>`;
+}
+
+function renderFluxoCaixa(m) {
+  const f = m.fluxoCaixa;
+  const tbl = document.getElementById('tblFluxoCaixa');
+  tbl.innerHTML = `
+    <thead><tr><th>Categoria</th><th>Valor</th></tr></thead>
+    <tbody>
+      <tr><td colspan="2" style="font-weight:700; background:var(--paper-2);">Entradas</td></tr>
+      ${Object.entries(f.entradas).map(([k,v]) => `<tr><td>${k}</td><td class="num pos">${BRL(v)}</td></tr>`).join('')}
+      <tr><td colspan="2" style="font-weight:700; background:var(--paper-2);">Saídas</td></tr>
+      ${Object.entries(f.saidas).map(([k,v]) => `<tr><td>${k}</td><td class="num neg">-${BRL(v,{noSign:true})}</td></tr>`).join('')}
+    </tbody>
+    <tfoot>
+      <tr><td>Total entradas</td><td class="num">${BRL(f.totalEntradasCaixa)}</td></tr>
+      <tr><td>Total saídas</td><td class="num">-${BRL(f.totalSaidasCaixa,{noSign:true})}</td></tr>
+      <tr><td>Saldo do período</td><td class="num">${BRL(f.saldoFinal)}</td></tr>
+    </tfoot>`;
+
+  renderChart('chartSaldoAcum', 'line', {
+    labels: m.carteira.saldoAcumSeries.map(p => p.data),
+    datasets: [{ label: 'Saldo na carteira (R$)', data: m.carteira.saldoAcumSeries.map(p => p.saldo),
+      borderColor: '#963F22', backgroundColor: 'rgba(194,85,47,0.08)', fill: true, tension: 0.25, pointRadius: 0, borderWidth: 2 }]
+  }, { scales: { x: { ticks: { font: { size: 8 }, maxRotation: 90, autoSkip: true, maxTicksLimit: 12 } }, y: { ticks: { font: { size: 10 } } } }, plugins: { legend: { display: false } } });
+}
+
+function renderPrevisao(m) {
+  const p = m.pendentes;
+  document.getElementById('kpiPrevisao').innerHTML = [
+    kpiCard('Aguardando conclusão (liberação próxima)', BRL(p.porCategoria.aguardandoConclusao), 'Shopee libera após confirmação'),
+    kpiCard('Em trânsito (enviado/entregue)', BRL(p.porCategoria.aguardandoEntrega), 'depende da confirmação de entrega'),
+    kpiCard('Janela de devolução aberta', BRL(p.porCategoria.aguardandoDevolucao), 'sujeito a possível devolução'),
+    kpiCard('Recém-criado / a enviar', BRL(p.porCategoria.iniciado), 'fase inicial do ciclo')
+  ].join('');
+}
+
+function renderSaude(m) {
+  document.getElementById('legendaSaude').innerHTML = semaforoLegenda();
+  document.getElementById('helpSaude').innerHTML = helpDot('Esta seção usa um sistema de cores (semáforo) para indicar rapidamente se cada indicador está em um nível saudável ou pede atenção. Verde escuro é o melhor cenário; vinho exige ação imediata.');
+  const s = m.saude;
+  const nivelLiberado = classificarSemaforo(s.pctVirouDinheiro * 100, [95, 85, 70, 50, 30], true);
+  const nivelPreso = classificarSemaforo(s.pctPresoNaShopee * 100, [5, 15, 30, 50, 70], false);
+  const items = [
+    { q: 'A operação gera caixa?', help: 'Mostra se a loja está efetivamente transformando vendas em dinheiro saindo da Shopee para sua conta bancária — e não apenas acumulando saldo "no papel".', a: s.totalSacado > 0 ? 'Sim' : 'Indeterminado', sub: `${BRL(s.totalSacado)} sacados no período, saldo de ${BRL(s.saldoNaCarteira)} ainda na carteira.` },
+    { q: 'Qual % das vendas já virou dinheiro liberado?', help: 'Quanto maior, melhor: significa que a Shopee já confirmou e liberou o pagamento dos seus pedidos. Um percentual baixo pode ser normal em período recente (pedidos ainda em trânsito) ou sinal de atraso.', a: pct(s.pctVirouDinheiro), sub: 'Quantidade Total Liberada ÷ GMV de pedidos ativos.', semaforo: nivelLiberado },
+    { q: 'Qual % ainda está preso na Shopee?', help: 'Quanto menor, melhor: é o valor de vendas que você já fez, mas que a Shopee ainda não liberou para sua carteira (pedidos em trânsito, aguardando confirmação, etc).', a: pct(s.pctPresoNaShopee), sub: 'Valor de pedidos sem Income lançado ÷ GMV.', semaforo: nivelPreso },
+    { q: 'Quanto permanece na carteira (não sacado)?', help: 'Dinheiro que já foi liberado pela Shopee, mas que você ainda não transferiu para sua conta bancária.', a: BRL(s.saldoNaCarteira), sub: 'Saldo após a última transação do período.' }
+  ];
+  document.getElementById('saudeGrid').innerHTML = items.map(i => `
+    <div class="exec-item"><div class="q">${i.q}${i.help ? helpDot(i.help) : ''}</div><div class="a">${i.a}<small>${i.sub}</small>${i.semaforo ? `<div style="margin-top:8px;">${semaforoBadge(i.semaforo)}</div>` : ''}</div></div>`).join('');
+}
+
+function renderKPIs(m) {
+  const v = m.vendas, r = m.receita, c = m.carteira, p = m.pendentes;
+  const margem = v.gmv ? r.receitaLiquida / v.gmv : 0;
+  const diasUnicos = c.dias.length || 1;
+  const nivelMargem = classificarSemaforo(margem * 100, [70, 55, 40, 25, 10], true);
+
+  document.getElementById('kpiFinal').innerHTML = [
+    kpiCard('GMV', BRL(v.gmv), '', '', { help: 'Valor bruto total vendido no período, somando todos os pedidos ativos (não cancelados), antes de qualquer taxa da Shopee.' }),
+    kpiCard('Receita Líquida', BRL(r.receitaLiquida), '', '', { help: 'O que efetivamente sobra depois de todas as taxas, comissões e descontos da Shopee — é o valor que a Shopee libera para sua carteira.' }),
+    kpiCard('Margem Financeira', pct(margem), '', '', { help: 'Receita Líquida dividida pelo GMV. Mostra qual fração de cada R$1 vendido sobra após as taxas da Shopee — antes de descontar seus próprios custos de produto e frete.', semaforo: nivelMargem }),
+    kpiCard('Ticket Médio', BRL(v.ticketMedio), '', '', { help: 'Valor médio de cada pedido (GMV ÷ número de pedidos ativos).' })
+  ].join('');
+  document.getElementById('kpiFinal2').innerHTML = [
+    kpiCard('Pedidos por dia', (m.overview.ativos / diasUnicos).toFixed(1)),
+    kpiCard('Valor médio bloqueado (pendente)', BRL(p.list.length ? p.total / p.list.length : 0), '', '', { help: 'Valor médio de cada pedido que ainda não teve a renda liberada pela Shopee.' }),
+    kpiCard('Total sacado no período', BRL(Math.abs(c.totalSacado))),
+    kpiCard('Saldo médio na carteira', BRL(c.saldoAcumSeries.length ? c.saldoAcumSeries.reduce((a,x)=>a+x.saldo,0)/c.saldoAcumSeries.length : 0))
+  ].join('');
+}
+
+function renderAuditoria(m) {
+  const flags = [];
+
+  const negativos = m.raw.allOrders.filter(o => o.valorTotal < 0 || o.totalGlobal < 0);
+  if (negativos.length) {
+    flags.push({ type: 'bad', title: `${negativos.length} pedido(s) com valor negativo`, body: `IDs: ${negativos.map(o=>o.orderId).join(', ')}. Verifique se são ajustes de devolução lançados incorretamente como pedido.` });
+  } else {
+    flags.push({ type: 'ok', title: 'Nenhum pedido com valor negativo', body: 'Todos os valores de pedido são consistentes (≥ 0).' });
+  }
+
+  const concluidosSemIncome = m.pendentes.list.filter(o => classifyStatus(o.status) === 'concluido');
+  if (concluidosSemIncome.length) {
+    flags.push({ type: 'warn', title: `${concluidosSemIncome.length} pedido(s) "Concluído" sem Income lançado`, body: `IDs: ${concluidosSemIncome.slice(0,8).map(o=>o.orderId).join(', ')}${concluidosSemIncome.length>8?'…':''}. Pedido concluído deveria ter renda liberada — pode ser timing de exportação (Income exportado antes da liberação) ou pedido fora da janela do relatório de Income.` });
+  } else {
+    flags.push({ type: 'ok', title: 'Nenhum pedido concluído sem Income correspondente', body: 'Todos os pedidos com status "Concluído" têm renda lançada no relatório de Income.' });
+  }
+
+  // taxa de comissão é reportada por pedido (repetida em cada linha de item), então
+  // comparamos contra o subtotal agregado de TODOS os itens do pedido, não da linha isolada
+  const subtotalPorPedido = {};
+  m.raw.lineItems.forEach(li => { subtotalPorPedido[li.orderId] = (subtotalPorPedido[li.orderId] || 0) + li.subtotalProduto; });
+  const altaComissao = m.raw.ativos.filter(o => {
+    const subtotalTotal = subtotalPorPedido[o.orderId] || 0;
+    return subtotalTotal > 0 && Math.abs(o.taxaComissaoLiquida) / subtotalTotal > 0.4;
+  });
+  if (altaComissao.length) {
+    flags.push({ type: 'warn', title: `${altaComissao.length} pedido(s) com taxa de comissão acima de 40% do subtotal`, body: `Pode indicar categoria de produto com comissão elevada ou erro de cadastro. Pedidos: ${altaComissao.slice(0,8).map(o=>o.orderId).join(', ')}` });
+  } else {
+    flags.push({ type: 'ok', title: 'Nenhuma taxa de comissão anormal detectada', body: 'Em todos os pedidos, a comissão líquida está dentro de uma faixa esperada (< 40% do subtotal total do pedido).' });
+  }
+
+  if (m.available.income && m.raw.shippingDiscrepancyRows && m.raw.shippingDiscrepancyRows.length) {
+    const sd = m.raw.shippingDiscrepancyRows;
+    const totalDiff = sd.reduce((a,r)=>a+(r.real-r.esperada),0);
+    flags.push({ type: 'warn', title: `${sd.length} pedido(s) com frete cobrado acima do esperado`, body: `Diferença total de ${BRL(totalDiff)}. IDs: ${sd.map(r=>r.orderId).join(', ')}. Verifique peso e dimensões cadastrados dos produtos envolvidos.` });
+  }
+
+  if (m.available.income && m.raw.adjustmentRows && m.raw.adjustmentRows.length) {
+    const total = m.raw.adjustmentRows.reduce((a,r)=>a+r.valor,0);
+    flags.push({ type: total < 0 ? 'warn' : 'ok', title: `${m.raw.adjustmentRows.length} ajuste(s) financeiro(s) no período`, body: `Total de ${BRL(total)}. Motivo predominante: ${m.raw.adjustmentRows[0].tipo}. Pedido relacionado: ${m.raw.adjustmentRows[0].pedidoRelacionado}.` });
+  }
+
+  document.getElementById('auditFlags').innerHTML = flags.map(renderFlag).join('');
+}
+
+function renderExecutivo(m) {
+  const items = [
+    { q: 'Quanto foi vendido', a: BRL(m.vendas.gmv), sub: `${m.overview.ativos} pedidos ativos no período` },
+    { q: 'Quanto realmente virou dinheiro', a: BRL(m.receita.quantidadeLiberada), sub: `${pct(m.saude.pctVirouDinheiro)} do GMV já liberado` },
+    { q: 'Quanto ainda será recebido', a: BRL(m.pendentes.total), sub: `${m.pendentes.list.length} pedidos aguardando liberação` },
+    { q: 'Quanto a Shopee reteve em taxas', a: BRL(Math.abs(m.descontos.totalNeg)), sub: `${pct(Math.abs(m.descontos.totalNeg)/(m.vendas.gmv||1))} do GMV` },
+    { q: 'Quanto foi gasto em anúncios', a: BRL(m.ads.recargaTotal), sub: `CAC aprox. ${BRL(m.ads.cac)} por pedido` },
+    { q: 'Quanto foi sacado', a: BRL(m.saude.totalSacado), sub: 'transferido para a conta bancária' },
+    { q: 'Quanto permanece disponível na carteira', a: BRL(m.saude.saldoNaCarteira), sub: 'saldo ao final do período analisado' },
+    { q: 'Pedidos cancelados / valor perdido', a: BRL(m.cancelados.total), sub: `${m.cancelados.list.length} pedidos, majoritariamente por falta de pagamento` }
+  ];
+  document.getElementById('execGrid').innerHTML = items.map(i => `
+    <div class="exec-item"><div class="q">${i.q}</div><div class="a">${i.a}<small>${i.sub}</small></div></div>`).join('');
+}
+
+function renderChart(canvasId, type, data, extraOptions = {}) {
+  const ctx = document.getElementById(canvasId);
+  if (!ctx) return; // Segurança: se canvas não existe, não tenta renderizar
+  
+  if (charts[canvasId]) charts[canvasId].destroy();
+  
+  // ✅ LIMITAR ALTURA MÁXIMA DO GRÁFICO
+  ctx.style.maxHeight = '300px';
+  ctx.style.maxWidth = '100%';
+  
+  charts[canvasId] = new Chart(ctx, {
+    type, data,
+    options: Object.assign({
+      responsive: true, 
+      maintainAspectRatio: true, // ✅ MUDAR para true para manter proporção
+      plugins: { legend: { labels: { font: { family: 'Inter' } } } }
+    }, extraOptions)
+  });
+}
+
+// Pré-carrega o histórico (mesmo antes de qualquer auditoria nova nesta visita)
+// para que o conteúdo já esteja pronto quando a pessoa clicar em "mostrar histórico".
+renderHistorico();
+
+/* ====================== EXPORTAÇÃO DE RELATÓRIOS ====================== */
+
+document.getElementById('exportMenuBtn').addEventListener('click', (e) => {
+  e.stopPropagation();
+  document.getElementById('exportMenu').classList.toggle('open');
+});
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('exportMenu');
+  if (!menu.contains(e.target) && e.target.id !== 'exportMenuBtn') menu.classList.remove('open');
+});
+
+const NOTA_ORIGEM = 'Relatório gerado com base nos dados dos arquivos enviados pelo usuário, baixados diretamente da plataforma Shopee (Seller Center). Os valores refletem o conteúdo desses arquivos no momento da exportação e podem não incluir lançamentos posteriores.';
+
+function checarModelDisponivel() {
+  if (!window.lastModel) {
+    alert('Rode uma auditoria primeiro para poder exportar o relatório.');
+    return false;
+  }
+  return true;
+}
+
+document.querySelectorAll('#exportMenu button[data-export]').forEach(btn => {
+  btn.addEventListener('click', async () => {
+    document.getElementById('exportMenu').classList.remove('open');
+    if (!checarModelDisponivel()) return;
+    const tipo = btn.dataset.export;
+    try {
+      showLoader('Preparando arquivo para download…');
+      if (tipo === 'word') await exportarWord(window.lastModel);
+      else if (tipo === 'excel') exportarExcel(window.lastModel);
+      else if (tipo === 'pptx') await exportarPPTX(window.lastModel);
+      else if (tipo === 'print') exportarPrint();
+      else if (tipo === 'png') await exportarImagem(window.lastModel, 'png');
+      else if (tipo === 'jpg') await exportarImagem(window.lastModel, 'jpg');
+    } catch (err) {
+      console.error('Erro na exportação:', err);
+      alert('Não foi possível gerar o arquivo: ' + err.message);
+    } finally {
+      hideLoader();
+    }
+  });
+});
+
+// Monta uma estrutura de dados comum, reaproveitada pelos exportadores de Word/Excel/PPTX
+function montarConteudoRelatorio(m) {
+  const secoes = [];
+  const planLivre = PLAN_ORDER[currentPlan] >= PLAN_ORDER['iniciante'];
+
+  secoes.push({
+    titulo: 'Visão Geral do Período',
+    linhas: planLivre ? [
+      ['Total de pedidos', String(m.overview.totalPedidos)],
+      ['Pedidos ativos', String(m.overview.ativos)],
+      ['Pedidos cancelados', String(m.overview.cancelados)],
+      ['Período analisado', `${m.meta.periodFrom || '?'} a ${m.meta.periodTo || '?'}`]
+    ] : [
+      ['Período analisado', `${m.meta.periodFrom || '?'} a ${m.meta.periodTo || '?'}`],
+      ['Pedidos ativos e aguardando finalização', '🔒 exclusivo dos planos pagos']
+    ]
+  });
+
+  secoes.push({
+    titulo: 'Vendas Brutas',
+    linhas: planLivre ? [
+      ['Valor bruto vendido (GMV)', BRL(m.vendas.gmv)],
+      ['Ticket médio', BRL(m.vendas.ticketMedio)],
+      ['Maior venda', BRL(m.vendas.maiorVenda)],
+      ['Menor venda', BRL(m.vendas.menorVenda)]
+    ] : [
+      ['Valor bruto vendido (GMV)', '🔒 exclusivo dos planos pagos'],
+      ['Ticket médio, maior e menor venda', '🔒 exclusivo dos planos pagos']
+    ]
+  });
+
+  if (!planLivre) {
+    secoes.push({
+      titulo: 'Continue na Auditoria.Shopee',
+      linhas: [
+        ['Quer ver a auditoria completa?', 'Assine o plano Iniciante (R$19,90/mês) ou Pro (R$49,90/mês)'],
+        ['Mais informações', 'auditoria.shopee — seção Planos']
+      ]
+    });
+    return secoes;
+  }
+
+  if (m.available.income) {
+    secoes.push({
+      titulo: 'Descontos da Shopee',
+      linhas: Object.entries(m.descontos.items).filter(([,v]) => v !== 0).map(([k,v]) => [k, BRL(v)])
+    });
+    secoes.push({
+      titulo: 'Receita Líquida',
+      linhas: [
+        ['Receita Bruta', BRL(m.receita.receitaTotal)],
+        ['Despesas Totais', BRL(m.receita.despesasTotais)],
+        ['Receita Líquida', BRL(m.receita.receitaLiquida)]
+      ]
+    });
+  }
+
+  if (m.available.balance) {
+    secoes.push({
+      titulo: 'Fluxo da Carteira',
+      linhas: [
+        ['Entrada total', BRL(m.carteira.entradaTotal)],
+        ['Saída total', BRL(m.carteira.saidaTotal)],
+        ['Total sacado', BRL(Math.abs(m.carteira.totalSacado))],
+        ['Saldo final na carteira', BRL(m.carteira.saldoFinal)]
+      ]
+    });
+  }
+
+  if (m.available.orders && m.available.income) {
+    secoes.push({
+      titulo: 'Pagamentos Pendentes',
+      linhas: [
+        ['Total pendente', BRL(m.pendentes.total)],
+        ['Quantidade de pedidos pendentes', String(m.pendentes.list.length)],
+        ['Aguardando conclusão', BRL(m.pendentes.porCategoria.aguardandoConclusao)],
+        ['Aguardando entrega', BRL(m.pendentes.porCategoria.aguardandoEntrega)],
+        ['Janela de devolução', BRL(m.pendentes.porCategoria.aguardandoDevolucao)]
+      ]
+    });
+  }
+
+  secoes.push({
+    titulo: 'Pedidos Cancelados',
+    linhas: [
+      ['Pedidos cancelados', String(m.cancelados.list.length)],
+      ['Valor que deixou de entrar', BRL(m.cancelados.total)]
+    ]
+  });
+
+  if (m.available.balance) {
+    secoes.push({
+      titulo: 'Anúncios (Shopee Ads)',
+      linhas: [
+        ['Recarga de Ads identificada na carteira', BRL(m.ads.recargaTotal)],
+        ['Participação no faturamento', pct(m.ads.participacao)],
+        ['CAC aproximado', BRL(m.ads.cac)]
+      ]
+    });
+  }
+
+  if (m.available.orders && m.available.income && m.available.balance) {
+    secoes.push({
+      titulo: 'KPIs Principais',
+      linhas: [
+        ['GMV', BRL(m.vendas.gmv)],
+        ['Receita Líquida', BRL(m.receita.receitaLiquida)],
+        ['Margem Financeira', pct(m.vendas.gmv ? m.receita.receitaLiquida / m.vendas.gmv : 0)],
+        ['Ticket Médio', BRL(m.vendas.ticketMedio)],
+        ['Total sacado no período', BRL(Math.abs(m.carteira.totalSacado))]
+      ]
+    });
+
+    secoes.push({
+      titulo: 'Relatório Executivo',
+      linhas: [
+        ['Quanto foi vendido', BRL(m.vendas.gmv)],
+        ['Quanto realmente virou dinheiro', BRL(m.receita.quantidadeLiberada)],
+        ['Quanto ainda será recebido', BRL(m.pendentes.total)],
+        ['Quanto a Shopee reteve em taxas', BRL(Math.abs(m.descontos.totalNeg))],
+        ['Quanto foi gasto em anúncios', BRL(m.ads.recargaTotal)],
+        ['Quanto foi sacado', BRL(m.saude.totalSacado)],
+        ['Quanto permanece disponível na carteira', BRL(m.saude.saldoNaCarteira)]
+      ]
+    });
+  }
+
+  return secoes;
+}
+
+/* -------- 1. IMPRESSÃO / PDF -------- */
+function exportarPrint() {
+  window.print();
+}
+
+/* -------- 2. EXCEL (.xlsx) via SheetJS -------- */
+function exportarExcel(m) {
+  const secoes = montarConteudoRelatorio(m);
+  const wb = XLSX.utils.book_new();
+
+  const aoa = [];
+  aoa.push([`Auditoria Shopee — ${m.meta.seller || 'Loja'}`]);
+  aoa.push([`Período: ${m.meta.periodFrom || '?'} a ${m.meta.periodTo || '?'}`]);
+  aoa.push([]);
+  secoes.forEach(sec => {
+    aoa.push([sec.titulo]);
+    sec.linhas.forEach(l => aoa.push(l));
+    aoa.push([]);
+  });
+  aoa.push([NOTA_ORIGEM]);
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols'] = [{ wch: 42 }, { wch: 22 }];
+  XLSX.utils.book_append_sheet(wb, ws, 'Resumo');
+
+  if (m.available.orders && m.available.income && m.pendentes.list.length) {
+    const aoaPend = [['Pedido', 'Cliente', 'Status', 'Valor']];
+    m.pendentes.list.forEach(o => aoaPend.push([o.orderId, o.comprador || '', o.status, o.totalGlobal]));
+    const wsPend = XLSX.utils.aoa_to_sheet(aoaPend);
+    XLSX.utils.book_append_sheet(wb, wsPend, 'Pendentes');
+  }
+
+  const fileName = `Auditoria_Shopee_${(m.meta.seller||'loja').replace(/\s+/g,'_')}_${m.meta.periodFrom||''}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+}
+
+/* -------- 3. WORD (.docx) via docx.js -------- */
+async function exportarWord(m) {
+  const { Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell, HeadingLevel, AlignmentType, WidthType, ShadingType, BorderStyle } = docx;
+
+  const border = { style: BorderStyle.SINGLE, size: 1, color: 'CCCCCC' };
+  const borders = { top: border, bottom: border, left: border, right: border };
+
+  const secoes = montarConteudoRelatorio(m);
+  const children = [];
+
+  children.push(new Paragraph({ heading: HeadingLevel.HEADING_1, children: [new TextRun(`Auditoria Financeira Shopee — ${m.meta.seller || 'Loja'}`)] }));
+  children.push(new Paragraph({ children: [new TextRun({ text: `Período: ${m.meta.periodFrom || '?'} a ${m.meta.periodTo || '?'}`, italics: true })], spacing: { after: 300 } }));
+
+  secoes.forEach(sec => {
+    children.push(new Paragraph({ heading: HeadingLevel.HEADING_2, children: [new TextRun(sec.titulo)], spacing: { before: 240, after: 120 } }));
+    const rows = sec.linhas.map(([label, valor]) => new TableRow({
+      children: [
+        new TableCell({ borders, width: { size: 6240, type: WidthType.DXA }, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [new Paragraph({ children: [new TextRun(String(label))] })] }),
+        new TableCell({ borders, width: { size: 3120, type: WidthType.DXA }, margins: { top: 80, bottom: 80, left: 120, right: 120 }, children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun(String(valor))] })] })
+      ]
+    }));
+    children.push(new Table({ width: { size: 9360, type: WidthType.DXA }, columnWidths: [6240, 3120], rows }));
+  });
+
+  children.push(new Paragraph({ spacing: { before: 360 }, children: [new TextRun({ text: NOTA_ORIGEM, size: 18, italics: true, color: '767066' })] }));
+
+  const doc = new Document({
+    styles: { default: { document: { run: { font: 'Arial', size: 22 } } } },
+    sections: [{
+      properties: { page: { size: { width: 12240, height: 15840 }, margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 } } },
+      children
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  const fileName = `Auditoria_Shopee_${(m.meta.seller||'loja').replace(/\s+/g,'_')}_${m.meta.periodFrom||''}.docx`;
+  saveAs(blob, fileName);
+}
+
+/* -------- 4. POWERPOINT (.pptx) via PptxGenJS -------- */
+async function exportarPPTX(m) {
+  const pres = new PptxGenJS();
+  pres.defineLayout({ name: 'AUDITORIA', width: 10, height: 5.63 });
+  pres.layout = 'AUDITORIA';
+
+  const COR_INK = '14110F', COR_RUST = 'C2552F';
+
+  let slide = pres.addSlide();
+  slide.background = { color: 'FBF8F3' };
+  slide.addText('Auditoria Financeira Shopee', { x: 0.5, y: 1.6, w: 9, h: 0.8, fontSize: 32, bold: true, color: COR_INK, fontFace: 'Georgia' });
+  slide.addText(m.meta.seller || 'Loja', { x: 0.5, y: 2.35, w: 9, h: 0.5, fontSize: 18, color: COR_RUST });
+  slide.addText(`Período: ${m.meta.periodFrom || '?'} a ${m.meta.periodTo || '?'}`, { x: 0.5, y: 2.85, w: 9, h: 0.4, fontSize: 12, color: '6B6557' });
+
+  const secoes = montarConteudoRelatorio(m);
+  secoes.forEach(sec => {
+    const s = pres.addSlide();
+    s.background = { color: 'FBF8F3' };
+    s.addText(sec.titulo, { x: 0.4, y: 0.3, w: 9.2, h: 0.6, fontSize: 22, bold: true, color: COR_INK, fontFace: 'Georgia' });
+    const rows = sec.linhas.map(([label, valor]) => ([
+      { text: String(label), options: { fontSize: 12, color: COR_INK, fill: { color: 'FBF8F3' } } },
+      { text: String(valor), options: { fontSize: 12, bold: true, color: COR_INK, align: 'right', fill: { color: 'FBF8F3' } } }
+    ]));
+    s.addTable(rows, { x: 0.4, y: 1.1, w: 9.2, colW: [6.4, 2.8], border: { type: 'solid', color: 'DCD3C2', pt: 0.75 }, autoPage: false });
+  });
+
+  const s = pres.addSlide();
+  s.background = { color: 'FBF8F3' };
+  s.addText(NOTA_ORIGEM, { x: 0.6, y: 2.2, w: 8.8, h: 1.2, fontSize: 11, italic: true, color: '6B6557', align: 'center' });
+
+  const fileName = `Auditoria_Shopee_${(m.meta.seller||'loja').replace(/\s+/g,'_')}_${m.meta.periodFrom||''}.pptx`;
+  await pres.writeFile({ fileName });
+}
+
+/* -------- CALCULADORA DE PRECIFICAÇÃO -------- */
+function calcularPrecificacao() {
+  const preco = parseFloat(document.getElementById('calcPreco').value) || 0;
+  const custo = parseFloat(document.getElementById('calcCusto').value) || 0;
+  const frete = parseFloat(document.getElementById('calcFrete').value) || 0;
+  const extras = parseFloat(document.getElementById('calcExtras').value) || 0;
+
+  // Taxas Shopee (2026)
+  const faixa1 = { min: 0, max: 20, comissao: 0.15 };
+  const faixa2 = { min: 20, max: 50, comissao: 0.18 };
+  const faixa3 = { min: 50, max: 100, comissao: 0.20 };
+  const faixa4 = { min: 100, max: Infinity, comissao: 0.22 };
+  
+  let comissao = 0;
+  if (preco < faixa1.max) comissao = faixa1.comissao;
+  else if (preco < faixa2.max) comissao = faixa2.comissao;
+  else if (preco < faixa3.max) comissao = faixa3.comissao;
+  else comissao = faixa4.comissao;
+
+  const taxaComissao = preco * comissao;
+  const taxaFixa = 3; // Taxa fixa por item
+  const taxaCampanha = preco * 0.05; // Campanha (estimado)
+  const totalTaxas = taxaComissao + taxaFixa + taxaCampanha;
+
+  const receitaLiquida = preco - custo - frete - extras - totalTaxas;
+  const margem = preco > 0 ? (receitaLiquida / preco * 100) : 0;
+
+  // Atualizar resultados
+  document.getElementById('calcReceita').textContent = 'R$ ' + receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('calcMargem').textContent = margem.toFixed(1) + '%';
+  document.getElementById('calcPorPedido').textContent = 'R$ ' + receitaLiquida.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  document.getElementById('calcResultados').style.display = 'block';
+}
+
+/* -------- 5/6. IMAGEM (PNG/JPG) via html2canvas -------- */
+async function exportarImagem(m, formato) {
+  const dashboardEl = document.getElementById('dashboard');
+  let canvas;
+  try {
+    canvas = await html2canvas(dashboardEl, {
+      backgroundColor: '#FBF8F3',
+      scale: 1.5,
+      useCORS: true,
+      windowWidth: dashboardEl.scrollWidth,
+      windowHeight: dashboardEl.scrollHeight
+    });
+  } catch (err) {
+    throw new Error('Não foi possível capturar a página como imagem (' + err.message + '). Tente a opção "Imprimir / salvar como PDF" como alternativa.');
+  }
+  const mime = formato === 'jpg' ? 'image/jpeg' : 'image/png';
+  const dataUrl = canvas.toDataURL(mime, 0.92);
+  const link = document.createElement('a');
+  link.href = dataUrl;
+  link.download = `Auditoria_Shopee_${(m.meta.seller||'loja').replace(/\s+/g,'_')}_${m.meta.periodFrom||''}.${formato}`;
+  link.click();
+}
+
+
+
+
+function renderProjecaoRecebimento(m){try{if(!m.carteira)return;const div=document.createElement('div');div.innerHTML='<div style="margin:30px 0;padding:20px;background:#e8f5e9;border-left:4px solid #4caf50;border-radius:8px"><h3>📅 Recebimentos</h3><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:15px"><div style="padding:12px;background:white;border-radius:6px"><div>7 dias</div><div style="font-weight:700">'+BRL(m.carteira.bloqueado*0.5)+'</div></div><div style="padding:12px;background:white;border-radius:6px"><div>14 dias</div><div style="font-weight:700">'+BRL(m.carteira.bloqueado*0.3)+'</div></div><div style="padding:12px;background:white;border-radius:6px"><div>30 dias</div><div style="font-weight:700">'+BRL(m.carteira.bloqueado*0.2)+'</div></div></div><div style="margin-top:15px;padding:12px;background:white;border-radius:6px"><div>💰 Total: '+BRL(m.carteira.bloqueado)+'</div></div></div>';const el=document.getElementById('kpiCarteira');if(el&&el.parentElement)el.parentElement.insertAdjacentElement('afterend',div);}catch(e){}}
+function renderGraficoComparacao(m){try{const hist=m.historicoLocal||[];if(hist.length<2)return;const atual=m.vendas.gmv,ant=hist[hist.length-2]?.gmv||hist[0]?.gmv||atual,cr=((atual-ant)/(ant||1)*100).toFixed(1);const div=document.createElement('div');div.innerHTML='<div style="margin:20px 0;padding:20px;background:#e8f5e9;border-left:4px solid #4caf50;border-radius:8px"><h3>📊 Crescimento: '+cr+'%</h3><div style="display:grid;grid-template-columns:1fr 1fr;gap:15px"><div style="padding:12px;background:white;border-radius:6px">Anterior: '+BRL(ant)+'</div><div style="padding:12px;background:white;border-radius:6px">Atual: '+BRL(atual)+'</div></div></div>';const el=document.getElementById('kpiVendas');if(el&&el.parentElement)el.parentElement.insertAdjacentElement('afterend',div);}catch(e){}}
+function renderBreakdownCustos(m){try{const r=m.vendas.gmv||1,c=Math.abs(m.descontos.items['Comissão']||0)||r*0.1,i=m.financeiro.impostos||r*0.05,d=m.financeiro.devolucao||0,l=Math.max(0,r-c-i-d);const div=document.createElement('div');div.innerHTML='<div style="margin:20px 0;padding:20px;background:#fff3e0;border-left:4px solid #ff9800;border-radius:8px"><h3>💸 Custos</h3><div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px"><div style="padding:12px;background:white;border-radius:6px">Comissão<br/>'+BRL(c)+'</div><div style="padding:12px;background:white;border-radius:6px">Impostos<br/>'+BRL(i)+'</div><div style="padding:12px;background:white;border-radius:6px">Devolução<br/>'+BRL(d)+'</div><div style="padding:12px;background:#e8f5e9;border-radius:6px;font-weight:600">Receita<br/>'+BRL(l)+'</div></div></div>';const el=document.getElementById('descontosBreakdown');if(el&&el.parentElement&&el.parentElement.parentElement)el.parentElement.parentElement.insertAdjacentElement('afterend',div);}catch(e){}}
+function renderAlertas(m){try{const a=[];if(m.carteira&&m.carteira.bloqueado/(m.vendas.gmv||1)>0.5)a.push('⚠️ Bloqueio >50%');const h=m.historicoLocal||[];if(h.length>=2&&m.vendas.gmv<(h[h.length-2]?.gmv||h[0]?.gmv||m.vendas.gmv)*0.8)a.push('📉 Receita caiu');if(a.length===0)return;const div=document.createElement('div');div.innerHTML='<div style="margin:20px 0;padding:15px;background:#fff3cd;border-left:4px solid #ffc107;border-radius:6px"><div style="font-weight:600">🔔 Alertas</div>'+a.map(x=>'<div style="padding:8px;margin-top:5px;background:white;border-radius:4px">'+x+'</div>').join('')+'</div>';div.id='alertasF5';const d=document.getElementById('dashboard');if(d){const ex=document.getElementById('alertasF5');if(ex)ex.remove();d.insertAdjacentElement('afterbegin',div);}}catch(e){}}
+function renderRecomendacoes(m){try{const r=[];const mg=m.financeiro.margemLiquida||(m.carteira.saldo/(m.vendas.gmv||1));if(mg<0.15)r.push('💰 Aumente margem');const h=m.historicoLocal||[];if(h.length>=2){const cr=(m.vendas.gmv-(h[h.length-2]?.gmv||h[0]?.gmv||m.vendas.gmv))/(h[h.length-2]?.gmv||h[0]?.gmv||m.vendas.gmv||1);if(cr>0.2)r.push('🚀 Está crescendo');}if(r.length===0)return;const div=document.createElement('div');div.innerHTML='<div style="margin:20px 0;padding:15px;background:#e3f2fd;border-left:4px solid #2196f3;border-radius:6px"><div style="font-weight:600">💡 Recomendações</div>'+r.map(x=>'<div style="padding:8px;margin-top:5px;background:white;border-radius:4px">'+x+'</div>').join('')+'</div>';div.id='recomF5';const d=document.getElementById('dashboard');if(d){const ex=document.getElementById('recomF5');if(ex)ex.remove();d.insertAdjacentElement('beforeend',div);}}catch(e){}}
+
+</script>
+</body>
+</html>
