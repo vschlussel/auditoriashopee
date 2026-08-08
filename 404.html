@@ -3,8 +3,18 @@
   <head>
     <title>Auditoria Shopee</title>
     <script>
-      // Redirecionar para index.html
-      window.location.href = '/auditorioshopee/';
+      // Redirecionar páginas não encontradas para index
+      var pathArray = window.location.pathname.split('/');
+      var repositoryName = 'auditorioshopee';
+      
+      // Se a URL não contém o nome do repositório, adiciona
+      if (pathArray[1] !== repositoryName) {
+        var newPath = '/' + repositoryName + window.location.pathname;
+        window.location.href = newPath;
+      } else {
+        // Senão redireciona para a página inicial
+        window.location.href = '/' + repositoryName + '/';
+      }
     </script>
   </head>
   <body>
