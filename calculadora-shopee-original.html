@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculadora Precificação · Auditoria.Shopee</title>
+<!-- Scripts de Autenticação (CRÍTICO: manter sessão) -->
+<script src="auth-config.js"></script>
+<script src="auth-utils.js"></script>
+<style>
+:root{
+  --ink: #14110F;
+  --paper: #FBF8F3;
+  --paper-2: #F1EBE0;
+  --line: #DCD3C2;
+  --moss: #3F5B43;
+  --moss-deep: #243828;
+  --rust: #C2552F;
+  --rust-deep: #963F22;
+  --gold: #B6862C;
+  --red-flag: #A3331F;
+  --green-flag: #2F6B47;
+  --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
+  --serif: 'Source Serif Pro', Georgia, serif;
+  --sans: 'Inter', -apple-system, sans-serif;
+}
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+*{box-sizing:border-box; margin:0; padding:0;}
+html{scroll-behavior:smooth;}
+html,body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
+body{padding-bottom:80px;}
+::selection{background:var(--gold); color:var(--paper);}
+.wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+a{color:inherit;}
+
+header.top{
+  border-bottom:1px solid var(--line); padding:22px 0 18px; position:sticky; top:0; z-index:50;
+  background:rgba(251,248,243,0.92); backdrop-filter: blur(8px);
+}
+header.top .wrap{display:flex; align-items:baseline; justify-content:space-between; gap:20px; flex-wrap:wrap;}
+.brand{display:flex; align-items:baseline; gap:12px; cursor:pointer; transition:opacity .2s ease;}
+.brand:hover{opacity:0.8;}
+.brand .mark{font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:-0.01em;}
+.brand .mark span{color:var(--rust);}
+
+section.calc-section{padding:70px 0; border-top:1px solid var(--line); background:var(--paper-2);}
+.calc-box{background:var(--paper); border:1px solid var(--line); max-width:920px; margin:0 auto;}
+.calc-grid{display:grid; grid-template-columns:1fr 1fr;}
+@media (max-width:760px){.calc-grid{grid-template-columns:1fr;}}
+.calc-inputs{padding:36px 38px; border-right:1px solid var(--line);}
+@media (max-width:760px){.calc-inputs{border-right:none; border-bottom:1px solid var(--line);}}
+.calc-results{padding:36px 38px; background:var(--moss-deep); color:var(--paper);}
+
+.section-head{text-align:center; max-width:640px; margin:0 auto 44px;}
+.section-head .eyebrow{font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:var(--rust); margin-bottom:14px;}
+.section-head h2{font-family:var(--serif); font-size:32px; font-weight:700; letter-spacing:-0.01em; margin-bottom:14px;}
+.section-head p{font-size:15px; line-height:1.6; color:#4A453A;}
+
+.field{margin-bottom:20px;}
+.field label{display:block; font-family:var(--mono); font-size:11px; letter-spacing:0.05em; text-transform:uppercase; color:#766F5E; margin-bottom:6px; font-weight:600;}
+.field-row{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+@media (max-width:640px){.field-row{grid-template-columns:1fr;}}
+
+.input-wrap{position:relative; display:flex; align-items:center;}
+.input-wrap input{width:100%; padding:10px 12px 10px 28px; border:1px solid var(--line); border-radius:3px; font-family:var(--mono); font-size:14px; background:var(--paper); color:var(--ink); transition:border-color .15s;}
+.input-wrap input:focus{outline:none; border-color:var(--moss);}
+.input-wrap .prefix{position:absolute; left:10px; font-family:var(--mono); font-size:13px; color:#766F5E; font-weight:500; pointer-events:none;}
+.input-wrap .prefix.right{left:auto; right:13px;}
+
+.toggle-group{display:flex; gap:0; border:1px solid var(--line); border-radius:3px; overflow:hidden;}
+.toggle-group button{flex:1; padding:10px; font-family:var(--mono); font-size:12.5px; background:var(--paper); border:none; cursor:pointer; color:#766F5E; transition:all .15s;}
+.toggle-group button.active{background:var(--moss-deep); color:var(--paper);}
+
+.hint{font-size:12px; color:#8C8570; margin-top:6px;}
+
+.adv-toggle{font-family:var(--mono); font-size:11.5px; color:#8C8570; background:none; border:none; cursor:pointer; text-decoration:underline; text-decoration-color:var(--line); padding:0; margin-top:6px; transition:color .15s;}
+.adv-toggle:hover{color:var(--rust);}
+.adv-panel{display:none; margin-top:18px; padding-top:18px; border-top:1px dashed var(--line);}
+.adv-panel.open{display:block;}
+.adv-panel .field input{font-size:13px;}
+.adv-panel .field .prefix.right{left:auto; right:13px;}
+.adv-panel .field input.pct{padding-left:14px; padding-right:30px;}
+
+.result-row{display:flex; justify-content:space-between; align-items:baseline; padding:11px 0; border-bottom:1px solid rgba(255,255,255,0.12); font-size:13.5px;}
+.result-row:last-child{border-bottom:none;}
+.result-row.total{padding-top:18px; margin-top:6px; border-top:1.5px solid rgba(255,255,255,0.3); border-bottom:none;}
+.result-row .lbl{color:#C9CFC8;}
+.result-row .val{font-family:var(--mono); font-weight:600;}
+.result-row.total .lbl{font-family:var(--serif); font-size:16px; color:var(--paper); font-weight:600;}
+.result-row.total .val{font-family:var(--serif); font-size:26px; color:#E8A87C; font-weight:700;}
+.result-row .val.neg{color:#E8A87C;}
+
+.margin-badge{margin-top:20px; padding:13px 16px; border-radius:3px; font-family:var(--mono); font-size:12.5px; text-align:center;}
+.margin-badge.good{background:rgba(63,91,67,0.35); color:#B9D4BC;}
+.margin-badge.warn{background:rgba(182,134,44,0.3); color:#F0CE8E;}
+.margin-badge.bad{background:rgba(163,51,31,0.35); color:#F0A99A;}
+
+.calc-disclaimer{font-size:11.5px; line-height:1.55; color:#8C8570; padding:18px 38px; border-top:1px solid var(--line); font-family:var(--mono);}
+.calc-disclaimer strong{color:#55503F;}
+.calc-disclaimer a{color:var(--moss-deep);}
+
+.help-dot-mini{display:inline-block; width:16px; height:16px; border-radius:50%; background:var(--paper-2); border:1px solid var(--line); font-size:11px; line-height:16px; text-align:center; cursor:help; font-weight:600; color:#766F5E;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap" style="display:flex; align-items:center; justify-content:space-between;">
+    <div class="brand" onclick="history.back()" style="cursor:pointer;">
+      <div class="mark">Auditoria<span>.Shopee</span></div>
+    </div>
+    <a href="javascript:history.back();" class="btn-back">← Voltar para Auditoria</a>
+  </div>
+</header>
+
+<section class="calc-section" id="calculadora">
+  <div class="wrap">
+    <div class="section-head">
+      <div class="eyebrow">Calculadora</div>
+      <h2>Quanto sobra de cada venda na Shopee?</h2>
+      <p>Informe o preço de venda, custo e frete — a calculadora aplica comissão, taxa fixa por faixa e taxa de campanha automaticamente.</p>
+    </div>
+
+    <div class="calc-box">
+      <div class="calc-grid">
+        <div class="calc-inputs">
+          <div class="field">
+            <label>Preço de venda</label>
+            <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcPreco" value="100" min="0" step="0.01" oninput="calcularPrecificacao()"></div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Custo do produto</label>
+              <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcCusto" value="40" min="0" step="0.01" oninput="calcularPrecificacao()"></div>
+            </div>
+            <div class="field">
+              <label>Frete pago por você</label>
+              <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcFrete" value="0" min="0" step="0.01" oninput="calcularPrecificacao()"></div>
+            </div>
+          </div>
+          <div class="field">
+            <label>Custos extras (embalagem, etiqueta, outros)</label>
+            <div class="input-wrap"><span class="prefix">R$</span><input type="number" id="calcExtras" value="0" min="0" step="0.01" oninput="calcularPrecificacao()"></div>
+          </div>
+
+          <div class="field">
+            <label>Tipo de conta</label>
+            <div class="toggle-group">
+              <button id="btnCnpj" class="active" onclick="selecionarTipoConta('cnpj')">CNPJ</button>
+              <button id="btnCpf" onclick="selecionarTipoConta('cpf')">CPF</button>
+            </div>
+          </div>
+          <div class="field" id="campoPedidos90d" style="display:none;">
+            <label>Pedidos nos últimos 90 dias <span class="help-dot-mini" title="Vendedores CPF com mais de 450 pedidos em 90 dias pagam R$3 adicional por item, conforme a política de comissão vigente desde março/2026.">?</span></label>
+            <input type="number" id="calcPedidos90d" value="0" min="0" step="1" oninput="calcularPrecificacao()">
+            <div class="hint">Acima de 450 pedidos/90 dias, vendedores CPF pagam +R$3 por item.</div>
+          </div>
+
+          <button class="adv-toggle" id="advToggle" onclick="toggleAvancado()">Ajustar percentuais de taxa (avançado) →</button>
+          <div class="adv-panel" id="advPanel">
+            <div class="field-row">
+              <div class="field"><label>Comissão até R$80</label><div class="input-wrap"><input type="number" class="pct" id="advPct1" value="20" step="0.1" oninput="calcularPrecificacao()"><span class="prefix right">%</span></div></div>
+              <div class="field"><label>Comissão acima de R$80</label><div class="input-wrap"><input type="number" class="pct" id="advPct2" value="14" step="0.1" oninput="calcularPrecificacao()"><span class="prefix right">%</span></div></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Taxa fixa até R$79,99</label><div class="input-wrap"><span class="prefix">R$</span><input type="number" id="advFixa1" value="4" step="0.5" oninput="calcularPrecificacao()"></div></div>
+              <div class="field"><label>Taxa fixa R$80–99,99</label><div class="input-wrap"><span class="prefix">R$</span><input type="number" id="advFixa2" value="16" step="0.5" oninput="calcularPrecificacao()"></div></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Taxa fixa R$100–199,99</label><div class="input-wrap"><span class="prefix">R$</span><input type="number" id="advFixa3" value="20" step="0.5" oninput="calcularPrecificacao()"></div></div>
+              <div class="field"><label>Taxa fixa acima de R$200</label><div class="input-wrap"><span class="prefix">R$</span><input type="number" id="advFixa4" value="26" step="0.5" oninput="calcularPrecificacao()"></div></div>
+            </div>
+            <div class="field-row">
+              <div class="field"><label>Taxa de campanha (opcional)</label><div class="input-wrap"><input type="number" class="pct" id="advCampanha" value="0" step="0.1" oninput="calcularPrecificacao()"><span class="prefix right">%</span></div></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="calc-results">
+          <div class="result-row"><div class="lbl">Comissão Shopee</div><div class="val neg" id="resComissao">−R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">Taxa fixa por item</div><div class="val neg" id="resFixa">−R$ 0,00</div></div>
+          <div class="result-row" style="display:none;"><div class="lbl">Adicional CPF alto volume</div><div class="val neg" id="resAdicionalCpf">−R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">Taxa de campanha</div><div class="val neg" id="resCampanha">−R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">Repasse líquido (Shopee)</div><div class="val" id="resRepasse">R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">(−) Custo do produto</div><div class="val neg" id="resCusto">−R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">(−) Frete pago por você</div><div class="val neg" id="resFrete">−R$ 0,00</div></div>
+          <div class="result-row"><div class="lbl">(−) Custos extras (embalagem, etiqueta...)</div><div class="val neg" id="resExtras">−R$ 0,00</div></div>
+          <div class="result-row total"><div class="lbl">Lucro por venda</div><div class="val" id="resLucro">R$ 0,00</div></div>
+          <div class="margin-badge" id="resMargemBadge">Margem: 0%</div>
+        </div>
+      </div>
+      <div class="calc-disclaimer">
+        <strong>Sobre os números:</strong> a tabela acima reflete a política de comissão vigente desde 1º de março de 2026, divulgada pela <a href="https://seller.shopee.com.br/edu/article/26839/Comissao-para-vendedores-CNPJ-e-CPF-em-2026" target="_blank" rel="noopener">Central de Educação oficial da Shopee</a>: faixas por preço, sem teto máximo de comissão, e adicional de R$3 por item para vendedores CPF com mais de 450 pedidos em 90 dias. Mesmo assim, valores podem variar por categoria e mudar sem aviso — todos os percentuais são <strong>totalmente editáveis</strong> em "ajustar percentuais". Confirme sempre os valores reais cobrados na sua loja em Central do Vendedor → Minha Renda antes de decidir um preço final.
+      </div>
+    </div>
+  </div>
+</section>
+
+<script>
+let tipoConta = 'cnpj';
+
+function selecionarTipoConta(tipo) {
+  tipoConta = tipo;
+  document.getElementById('btnCnpj').classList.toggle('active', tipo === 'cnpj');
+  document.getElementById('btnCpf').classList.toggle('active', tipo === 'cpf');
+  document.getElementById('campoPedidos90d').style.display = tipo === 'cpf' ? 'block' : 'none';
+  calcularPrecificacao();
+}
+
+function toggleAvancado() {
+  document.getElementById('advPanel').classList.toggle('open');
+}
+
+function BRL(n) {
+  return new Intl.NumberFormat('pt-BR', {style:'currency', currency:'BRL'}).format(n);
+}
+
+function calcularPrecificacao() {
+  const preco = parseFloat(document.getElementById('calcPreco').value) || 0;
+  const custo = parseFloat(document.getElementById('calcCusto').value) || 0;
+  const frete = parseFloat(document.getElementById('calcFrete').value) || 0;
+  const extras = parseFloat(document.getElementById('calcExtras').value) || 0;
+  const pedidos90d = parseFloat(document.getElementById('calcPedidos90d').value) || 0;
+
+  const pct1 = parseFloat(document.getElementById('advPct1').value) || 0;
+  const pct2 = parseFloat(document.getElementById('advPct2').value) || 0;
+  const fixa1 = parseFloat(document.getElementById('advFixa1').value) || 0;
+  const fixa2 = parseFloat(document.getElementById('advFixa2').value) || 0;
+  const fixa3 = parseFloat(document.getElementById('advFixa3').value) || 0;
+  const fixa4 = parseFloat(document.getElementById('advFixa4').value) || 0;
+  const campanhaPct = parseFloat(document.getElementById('advCampanha').value) || 0;
+
+  let comissaoPct, taxaFixa;
+  if (preco < 8) {
+    comissaoPct = 0;
+    taxaFixa = preco * 0.5;
+  } else if (preco < 80) {
+    comissaoPct = pct1 / 100;
+    taxaFixa = fixa1;
+  } else if (preco < 100) {
+    comissaoPct = pct2 / 100;
+    taxaFixa = fixa2;
+  } else if (preco < 200) {
+    comissaoPct = pct2 / 100;
+    taxaFixa = fixa3;
+  } else {
+    comissaoPct = pct2 / 100;
+    taxaFixa = fixa4;
+  }
+
+  const comissao = preco * comissaoPct;
+  const adicionalCpfAltoVolume = (tipoConta === 'cpf' && pedidos90d > 450) ? 3.0 : 0;
+  const taxaCampanha = preco * (campanhaPct / 100);
+  const totalTaxas = comissao + taxaFixa + adicionalCpfAltoVolume + taxaCampanha;
+  const repasse = preco - totalTaxas;
+  const lucro = repasse - custo - frete - extras;
+  const margem = preco ? (lucro / preco * 100) : 0;
+
+  document.getElementById('resComissao').textContent = '−' + BRL(comissao);
+  document.getElementById('resFixa').textContent = '−' + BRL(taxaFixa);
+  document.getElementById('resAdicionalCpf').textContent = '−' + BRL(adicionalCpfAltoVolume);
+  document.getElementById('resAdicionalCpf').closest('.result-row').style.display = adicionalCpfAltoVolume > 0 ? 'flex' : 'none';
+  document.getElementById('resCampanha').textContent = '−' + BRL(taxaCampanha);
+  document.getElementById('resRepasse').textContent = BRL(repasse);
+  document.getElementById('resCusto').textContent = '−' + BRL(custo);
+  document.getElementById('resFrete').textContent = '−' + BRL(frete);
+  document.getElementById('resExtras').textContent = '−' + BRL(extras);
+  document.getElementById('resLucro').textContent = BRL(lucro);
+
+  const badge = document.getElementById('resMargemBadge');
+  const margemTxt = `Margem sobre o preço de venda: ${margem.toFixed(1)}%`;
+  if (margem < 0) {
+    badge.className = 'margin-badge bad';
+    badge.textContent = `Prejuízo — ${margemTxt}`;
+  } else if (margem < 15) {
+    badge.className = 'margin-badge warn';
+    badge.textContent = `Margem apertada — ${margemTxt}`;
+  } else {
+    badge.className = 'margin-badge good';
+    badge.textContent = `Margem saudável — ${margemTxt}`;
+  }
+}
+
+// Calcular ao carregar
+calcularPrecificacao();
+
+// ✅ VERIFICAÇÃO DE AUTENTICAÇÃO (MANTER SESSÃO)
+// Se o usuário não estiver autenticado, redireciona
+window.addEventListener('load', async () => {
+  try {
+    const session = await AuthUtils.getSessaoAtual();
+    if (!session) {
+      // Sem sessão: redireciona para login com URL de retorno
+      window.location.href = `login.html?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+    }
+  } catch (e) {
+    console.log('Auth check error:', e);
+    // Continua mesmo se houver erro (não quer bloquear cálculos locais)
+  }
+});
+</script>
+
+</body>
+</html>
