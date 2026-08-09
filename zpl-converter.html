@@ -506,28 +506,22 @@ let blobAtual = null;
 
 const exemplos = {
   simples: `^XA
-^MMT
-^PW812
-^LL406
-^LS0
-^FT50,50^A0N,50,50^FDProduto Teste^FS
-^FT50,150^A0N,30,30^FDCódigo: 123456^FS
-^FT50,250^A0N,25,25^FDPreço: R$ 99,99^FS
+^FT30,30^A0N,40,40^FDProduto Teste^FS
+^FT30,100^A0N,25,25^FDCódigo: 123456^FS
+^FT30,150^BC,80,Y,N,N
+^FD123456789^FS
+^FT30,250^A0N,20,20^FDPreço: R$ 99,90^FS
 ^XZ`,
 
   completo: `^XA
-^MMT
-^PW812
-^LL1218
-^LS0
-^FT50,50^A0N,60,60^FDAuditório Shopee^FS
-^FT50,150^A0N,40,40^FDProduto Premium^FS
-^FT50,250^BCN,100,Y,N,N,N
+^FT30,30^A0N,50,50^FDAuditório Shopee^FS
+^FT30,100^A0N,35,35^FDProduto Premium^FS
+^FT30,160^BC,90,Y,N,N
 ^FD9876543210123^FS
-^FT50,400^A0N,35,35^FDSKU: SKU-2024-001^FS
-^FT50,500^A0N,30,30^FDPreço: R$ 259,90^FS
-^FT50,600^A0N,25,25^FDValidade: 31/12/2025^FS
-^FT50,700^A0N,25,25^FDLote: 202408001^FS
+^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FT30,320^A0N,25,25^FDPreço: R$ 259,90^FS
+^FT30,360^A0N,20,20^FDValidade: 31/12/2025^FS
+^FT30,400^A0N,20,20^FDLote: 202408001^FS
 ^XZ`
 };
 
@@ -622,78 +616,137 @@ async function converter() {
 
 function desenhar_zpl(ctx, zpl, largura, altura) {
   let posX = 0, posY = 0;
-  let tamanhoFonte = 12;
+  let tamanhoFonte = 14;
   let fontePadrao = 'Arial';
+  let alturaLinha = 20;
+  let proximoTexto = null;
 
-  const linhas = zpl.split('\n');
+  // Remover espaços em branco extras e dividir por linhas
+  const linhas = zpl.split(/\n|\^/).filter(l => l.trim());
 
-  for (let linha of linhas) {
-    linha = linha.trim();
+  console.log('Linhas ZPL:', linhas);
 
-    if (linha.startsWith('^FT')) {
-      const m = linha.match(/\^FT(\d+),(\d+)/);
+  for (let i = 0; i < linhas.length; i++) {
+    let linha = linhas[i].trim();
+    if (!linha) continue;
+
+    // Posicionamento ^FT
+    if (linha.startsWith('FT')) {
+      const m = linha.match(/FT(\d+),(\d+)/);
       if (m) {
         posX = parseInt(m[1]);
         posY = parseInt(m[2]);
+        console.log(`FT: posX=${posX}, posY=${posY}`);
       }
     }
     
-    else if (linha.startsWith('^A0') || linha.startsWith('^A@')) {
-      const m = linha.match(/\^A[0@][A-Z]?,(\d+)/);
-      if (m) tamanhoFonte = Math.max(8, parseInt(m[1]) / 10);
-    }
-    
-    else if (linha.startsWith('^BC') || linha.startsWith('^B1')) {
-      const prox = linhas[linhas.indexOf(linha) + 1] || '';
-      const m = prox.match(/\^FD([^\^]+)/);
+    // Fonte ^A0 (built-in) ou ^A@ (scalable)
+    else if (linha.startsWith('A0') || linha.startsWith('A@')) {
+      const m = linha.match(/A[0@]([A-Z])??,(\d+),(\d+)/);
       if (m) {
-        const codigo = m[1].replace(/\^FS/, '').trim();
-        try {
-          const canvas_temp = document.createElement('canvas');
-          JsBarcode(canvas_temp, codigo, {
-            format: 'CODE128',
-            width: 2,
-            height: 60,
-            displayValue: false,
-            margin: 0
-          });
-          ctx.drawImage(canvas_temp, posX, posY);
-        } catch (e) {
-          console.log('Erro ao gerar código de barras:', e);
-        }
+        tamanhoFonte = Math.max(10, parseInt(m[2]));
+        console.log(`Font: tamanho=${tamanhoFonte}`);
       }
     }
-    
-    else if (linha.startsWith('^BQ')) {
-      const prox = linhas[linhas.indexOf(linha) + 1] || '';
-      const m = prox.match(/\^FD([^\^]+)/);
+
+    // Código de barras 128 ^BC
+    else if (linha.startsWith('BC')) {
+      const m = linha.match(/BC[A-Z]?,(\d+),([YN]),([YN])/);
       if (m) {
-        const qr_data = m[1].replace(/\^FS/, '').trim();
-        try {
-          const canvas_temp = document.createElement('canvas');
-          QRCode.toCanvas(canvas_temp, qr_data, { width: 100, margin: 0 }, function(error) {
-            if (!error) {
-              ctx.drawImage(canvas_temp, posX, posY);
-            }
-          });
-        } catch (e) {
-          console.log('Erro ao gerar QR code:', e);
-        }
+        alturaLinha = parseInt(m[1]);
+        // Próximo FD contém o código
+        proximoTexto = 'barcode';
+        console.log(`Barcode: altura=${alturaLinha}`);
       }
     }
-    
-    else if (linha.startsWith('^FD')) {
-      const m = linha.match(/\^FD([^\^]+)/);
+
+    // Código de barras UPCA ^BU
+    else if (linha.startsWith('BU')) {
+      proximoTexto = 'barcode';
+    }
+
+    // QR Code ^BQ
+    else if (linha.startsWith('BQ')) {
+      proximoTexto = 'qrcode';
+      console.log('QR Code detectado');
+    }
+
+    // Campo de dados ^FD
+    else if (linha.startsWith('FD')) {
+      const m = linha.match(/FD(.+?)(?:FS|$)/);
       if (m) {
-        let texto = m[1].replace(/\^FS/, '').trim();
+        let texto = m[1].trim();
         
-        ctx.fillStyle = '#000000';
-        ctx.font = `${tamanhoFonte}px ${fontePadrao}`;
-        ctx.textBaseline = 'top';
-        ctx.fillText(texto, posX, posY);
+        if (proximoTexto === 'barcode') {
+          console.log(`Gerando barcode: ${texto}`);
+          try {
+            const canvas_temp = document.createElement('canvas');
+            canvas_temp.width = 300;
+            canvas_temp.height = Math.max(alturaLinha, 80);
+            JsBarcode(canvas_temp, texto, {
+              format: 'CODE128',
+              width: 2,
+              height: Math.max(alturaLinha, 60),
+              displayValue: false,
+              margin: 0
+            });
+            ctx.drawImage(canvas_temp, posX, posY - alturaLinha);
+            console.log(`Barcode desenhado em ${posX}, ${posY}`);
+          } catch (e) {
+            console.error('Erro barcode:', e);
+          }
+          proximoTexto = null;
+        }
+        else if (proximoTexto === 'qrcode') {
+          console.log(`Gerando QR code: ${texto}`);
+          try {
+            const canvas_temp = document.createElement('canvas');
+            QRCode.toCanvas(canvas_temp, texto, { 
+              width: 150, 
+              margin: 0,
+              errorCorrectionLevel: 'M'
+            }, function(error) {
+              if (!error) {
+                ctx.drawImage(canvas_temp, posX, posY);
+                console.log(`QR code desenhado em ${posX}, ${posY}`);
+              }
+            });
+          } catch (e) {
+            console.error('Erro QR:', e);
+          }
+          proximoTexto = null;
+        }
+        else {
+          // Texto normal
+          ctx.fillStyle = '#000000';
+          ctx.font = `bold ${tamanhoFonte}px ${fontePadrao}`;
+          ctx.textBaseline = 'top';
+          ctx.fillText(texto, posX, posY);
+          console.log(`Texto "${texto}" em ${posX}, ${posY}, tamanho=${tamanhoFonte}`);
+        }
+      }
+    }
+
+    // Fim do campo ^FS
+    else if (linha.startsWith('FS')) {
+      // Já processado acima
+    }
+
+    // Linhas e boxes
+    else if (linha.startsWith('GB')) {
+      const m = linha.match(/GB(\d+),(\d+),(\d+)/);
+      if (m) {
+        const larg = parseInt(m[1]);
+        const alt = parseInt(m[2]);
+        const borda = parseInt(m[3]);
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = borda;
+        ctx.strokeRect(posX, posY, larg, alt);
       }
     }
   }
+
+  console.log('ZPL renderizado com sucesso');
 }
 
 async function baixar() {
