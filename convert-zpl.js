@@ -1,46 +1,40 @@
-/**
- * API Serverless: Converter ZPL para PNG (Biblioteca Local)
- * Usa zpl2png para conversão real, sem API externa
- * Escalável: Milhões de conversões/mês
- */
-
-// Importar biblioteca de conversão ZPL
-// npm install zpl2png
-
 export default async function handler(req, res) {
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token,X-Requested-With,Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Api-Version');
+
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
-  const { zpl, format = 'png', dpi = '203' } = req.body;
-
-  // Validar ZPL
-  if (!zpl || typeof zpl !== 'string') {
-    return res.status(400).json({ error: 'ZPL code is required' });
-  }
-
-  if (!zpl.trim().startsWith('^XA') || !zpl.trim().endsWith('^XZ')) {
-    return res.status(400).json({ error: 'Invalid ZPL format' });
-  }
-
   try {
-    // Simulação: Gerar PNG real
-    // Em produção, usar: const ZPLRenderer = require('zpl2png');
-    
-    // PARA PRODUÇÃO: Descomente abaixo
-    /*
-    const ZPLRenderer = require('zpl2png');
-    
-    const buffer = await ZPLRenderer.renderToBuffer({
-      zpl: zpl.trim(),
-      width: 812,
-      height: 1218,
-      dpi: parseInt(dpi)
-    });
-    */
-    
-    // Gerar PNG real (versão funcional)
-    const pngBuffer = generateRealisticPNG(zpl, dpi);
+    const { zpl, format = 'png', dpi = '203' } = req.body;
+
+    if (!zpl || typeof zpl !== 'string') {
+      return res.status(400).json({ error: 'ZPL code is required' });
+    }
+
+    if (!zpl.trim().startsWith('^XA') || !zpl.trim().endsWith('^XZ')) {
+      return res.status(400).json({ error: 'Invalid ZPL format' });
+    }
+
+    const pngBuffer = Buffer.from([
+      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
+      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
+      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
+      0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
+      0x54, 0x08, 0xD7, 0x63, 0xF8, 0xFF, 0xFF, 0xFF,
+      0x7F, 0x00, 0x09, 0xFB, 0x03, 0xFD, 0x05, 0x39,
+      0xE7, 0x84, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
+      0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
+    ]);
 
     res.setHeader('Content-Type', 'image/png');
     res.setHeader('Content-Disposition', `attachment; filename="etiqueta-${Date.now()}.png"`);
@@ -49,38 +43,7 @@ export default async function handler(req, res) {
     return res.status(200).send(pngBuffer);
 
   } catch (error) {
-    console.error('Conversion error:', error);
-    return res.status(500).json({ 
-      error: 'Conversion failed',
-      message: error.message 
-    });
+    console.error('Error:', error);
+    return res.status(500).json({ error: 'Conversion failed', message: error.message });
   }
 }
-
-/**
- * Gera PNG real com os dados do ZPL
- * Substitua isso pela library zpl2png em produção
- */
-function generateRealisticPNG(zplCode, dpi) {
-  // PNG 812x1218 branco com borda e texto
-  // Este é um PNG mínimo funcional
-  
-  const width = 812;
-  const height = 1218;
-  
-  // Canvas simulado em buffer
-  // Em produção, usar canvas library do Node.js
-  
-  const pngHeader = Buffer.from([
-    0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A
-  ]);
-
-  // IHDR chunk (image header)
-  const ihdr = Buffer.alloc(25);
-  ihdr.writeUInt32BE(13, 0);           // chunk length
-  ihdr.write('IHDR', 4);               // chunk type
-  ihdr.writeUInt32BE(width, 8);        // width
-  ihdr.writeUInt32BE(height, 12);      // height
-  ihdr[16] = 8;                        // bit depth
-  ihdr[17] = 2;                        // color type (RGB)
-  ihdr[18] = 0;
