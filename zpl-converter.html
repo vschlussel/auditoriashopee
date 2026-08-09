@@ -1,10 +1,11 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter - Conversor de Etiquetas</title>
+  <title>ZPL Converter Pro - Gerador de Etiquetas</title>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -13,22 +14,40 @@
     }
 
     body {
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 20px;
       min-height: 100vh;
     }
 
+    .header {
+      max-width: 1400px;
+      margin: 0 auto 20px;
+      color: white;
+      text-align: center;
+    }
+
+    .header h1 {
+      font-size: 32px;
+      margin-bottom: 5px;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .header p {
+      font-size: 14px;
+      opacity: 0.9;
+    }
+
     .container {
-      max-width: 1200px;
+      max-width: 1400px;
       margin: 0 auto;
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 20px;
       background: white;
-      border-radius: 10px;
+      border-radius: 12px;
       overflow: hidden;
-      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
     .panel {
@@ -37,42 +56,84 @@
       flex-direction: column;
     }
 
-    .panel:first-child {
-      background: #f8f9fa;
-      border-right: 1px solid #e9ecef;
+    .panel-editor {
+      background: #fafbfc;
+      border-right: 1px solid #e1e4e8;
+      overflow-y: auto;
+      max-height: calc(100vh - 180px);
     }
 
-    h1 {
-      color: #333;
-      margin-bottom: 10px;
-      font-size: 24px;
+    .panel-preview {
+      background: #ffffff;
+      display: flex;
+      flex-direction: column;
     }
 
     h2 {
-      color: #555;
+      color: #24292e;
       font-size: 16px;
-      margin: 20px 0 10px 0;
+      margin: 0 0 12px 0;
       text-transform: uppercase;
-      letter-spacing: 1px;
+      letter-spacing: 0.5px;
+      font-weight: 600;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #586069;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     textarea {
       width: 100%;
-      height: 250px;
+      min-height: 220px;
       padding: 12px;
-      font-family: 'Courier New', monospace;
-      font-size: 13px;
-      border: 2px solid #dee2e6;
-      border-radius: 5px;
-      resize: vertical;
-      line-height: 1.5;
-      color: #333;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-size: 12px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      resize: none;
+      background: white;
+      color: #24292e;
+      line-height: 1.6;
+      transition: border-color 0.2s;
     }
 
     textarea:focus {
       outline: none;
       border-color: #667eea;
-      box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    select {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      font-size: 13px;
+      background: white;
+      cursor: pointer;
+      transition: border-color 0.2s;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
     }
 
     .button-group {
@@ -82,436 +143,649 @@
       margin: 20px 0;
     }
 
+    .button-group.full {
+      grid-template-columns: 1fr;
+    }
+
     button {
-      padding: 12px 20px;
-      font-size: 14px;
+      padding: 11px 16px;
+      font-size: 13px;
       font-weight: 600;
       border: none;
-      border-radius: 5px;
+      border-radius: 6px;
       cursor: pointer;
-      transition: all 0.3s ease;
+      transition: all 0.2s;
       text-transform: uppercase;
       letter-spacing: 0.5px;
+      white-space: nowrap;
     }
 
-    .btn-convert {
+    button:active {
+      transform: scale(0.98);
+    }
+
+    .btn-primary {
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
-      grid-column: 1 / -1;
+      font-size: 14px;
+      padding: 13px 16px;
+      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
 
-    .btn-convert:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
     }
 
-    .btn-download {
-      background: #28a745;
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-success {
+      background: #10b981;
       color: white;
     }
 
-    .btn-download:hover:not(:disabled) {
-      background: #218838;
-      transform: translateY(-2px);
+    .btn-success:hover {
+      background: #059669;
     }
 
-    .btn-download:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      opacity: 0.6;
-    }
-
-    .btn-clear {
-      background: #6c757d;
+    .btn-danger {
+      background: #ef4444;
       color: white;
     }
 
-    .btn-clear:hover {
-      background: #5a6268;
-      transform: translateY(-2px);
-    }
-
-    .btn-example {
-      background: #17a2b8;
-      color: white;
-      font-size: 12px;
-    }
-
-    .btn-example:hover {
-      background: #138496;
-      transform: translateY(-2px);
+    .btn-danger:hover {
+      background: #dc2626;
     }
 
     #preview {
-      width: 100%;
-      height: 100%;
-      border: 2px dashed #dee2e6;
-      background: white;
+      flex: 1;
+      border: 2px dashed #d1d5db;
+      background: #fafbfc;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 5px;
-      min-height: 400px;
+      border-radius: 8px;
+      min-height: 500px;
       position: relative;
       overflow: auto;
+      margin-bottom: 16px;
     }
 
-    #preview img,
-    #preview canvas {
+    #preview canvas,
+    #preview img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
       padding: 10px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
     }
 
     .preview-placeholder {
       text-align: center;
-      color: #999;
+      color: #9ca3af;
+    }
+
+    .preview-placeholder svg {
+      width: 60px;
+      height: 60px;
+      margin-bottom: 15px;
+      opacity: 0.5;
     }
 
     .preview-placeholder p {
-      margin: 10px 0;
       font-size: 14px;
+      line-height: 1.6;
     }
 
-    .info-box {
-      background: #e7f3ff;
-      border-left: 4px solid #2196F3;
-      padding: 10px 12px;
-      margin-top: 15px;
-      border-radius: 3px;
-      font-size: 12px;
-      color: #333;
-      line-height: 1.4;
-    }
-
-    .info-box strong {
-      color: #1976D2;
-    }
-
-    .status {
-      margin-top: 15px;
-      padding: 10px;
-      border-radius: 5px;
-      font-size: 12px;
+    .status-box {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-top: 12px;
       display: none;
+      animation: slideIn 0.3s ease;
     }
 
-    .status.success {
-      background: #d4edda;
-      color: #155724;
-      border: 1px solid #c3e6cb;
+    .status-box.show {
       display: block;
     }
 
-    .status.error {
-      background: #f8d7da;
-      color: #721c24;
-      border: 1px solid #f5c6cb;
-      display: block;
+    .status-box.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
     }
 
-    .dpi-selector {
+    .status-box.error {
+      background: #fef2f2;
+      color: #7f1d1d;
+      border: 1px solid #fecaca;
+    }
+
+    .status-box.info {
+      background: #eff6ff;
+      color: #0c2d6b;
+      border: 1px solid #bfdbfe;
+    }
+
+    @keyframes slideIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .info-banner {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 16px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #0c2d6b;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    .download-options {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin: 15px 0;
+      margin-top: 12px;
     }
 
-    label {
-      display: flex;
-      flex-direction: column;
+    .download-options button {
       font-size: 12px;
-      font-weight: 600;
-      color: #555;
+      padding: 9px 12px;
     }
 
-    select {
-      padding: 8px;
-      border: 2px solid #dee2e6;
-      border-radius: 5px;
-      font-size: 13px;
+    .tab-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .tab-button {
+      padding: 8px 12px;
+      font-size: 12px;
+      border: 1px solid #d1d5db;
+      background: white;
+      color: #374151;
+      border-radius: 4px;
       cursor: pointer;
-      margin-top: 5px;
+      transition: all 0.2s;
     }
 
-    select:focus {
-      outline: none;
+    .tab-button.active {
+      background: #667eea;
+      color: white;
       border-color: #667eea;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: 1024px) {
       .container {
         grid-template-columns: 1fr;
       }
 
-      .panel:first-child {
+      .panel-editor {
         border-right: none;
-        border-bottom: 1px solid #e9ecef;
+        border-bottom: 1px solid #e1e4e8;
+        max-height: none;
       }
 
-      h1 {
-        font-size: 20px;
+      .header h1 {
+        font-size: 24px;
       }
     }
 
-    .loading {
-      display: none;
-      text-align: center;
-      color: #667eea;
+    .hidden {
+      display: none !important;
     }
 
-    .spinner {
-      border: 3px solid #f3f3f3;
-      border-top: 3px solid #667eea;
+    .dimensions-info {
+      background: #f3f4f6;
+      padding: 10px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 8px;
+      border-left: 3px solid #9ca3af;
+    }
+
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f4f6;
+      border-top-color: #667eea;
       border-radius: 50%;
-      width: 30px;
-      height: 30px;
-      animation: spin 1s linear infinite;
-      margin: 10px auto;
+      animation: spin 0.8s linear infinite;
     }
 
     @keyframes spin {
-      0% { transform: rotate(0deg); }
-      100% { transform: rotate(360deg); }
+      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
 
+<div class="header">
+  <h1>📋 ZPL Converter Pro</h1>
+  <p>Conversor profissional de códigos ZPL para imagens de etiquetas</p>
+</div>
+
 <div class="container">
-  <div class="panel">
-    <h1>📝 ZPL Converter</h1>
-    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Converte código ZPL em imagem de etiqueta</p>
+  <!-- PAINEL EDITOR -->
+  <div class="panel panel-editor">
+    <h2>🖊️ Código ZPL</h2>
+    
+    <div class="tab-buttons">
+      <button class="tab-button active" onclick="abrir_aba('manual', this)">Manual</button>
+      <button class="tab-button" onclick="abrir_aba('exemplo', this)">Exemplo</button>
+    </div>
 
-    <h2>Código ZPL</h2>
-    <textarea id="zpl" placeholder="Cole aqui o código ZPL...">^XA
-^MMT
-^PW812
-^LL406
-^LS0
-^FT50,50^A0N,50,50^FDProduto Exemplo^FS
-^FT50,150^BCN,100,Y,N,N
-^FD1234567890^FS
-^FT50,250^A0N,30,30^FDPRECO: R$ 99,90^FS
-^XZ</textarea>
+    <div id="aba-manual" class="form-group">
+      <textarea id="zpl" placeholder="Cole aqui seu código ZPL...
+Exemplo:
+^XA
+^FT10,40^A0N,30,30^FDTEXTO^FS
+^XZ"></textarea>
+    </div>
 
-    <div class="dpi-selector">
-      <label>
-        Resolução (DPI)
+    <div id="aba-exemplo" class="hidden">
+      <div class="info-banner">
+        💡 Selecione um exemplo para carregá-lo no editor:
+      </div>
+      <div class="button-group full">
+        <button class="btn-secondary" onclick="carregar_exemplo('simples')">Exemplo Simples</button>
+        <button class="btn-secondary" onclick="carregar_exemplo('completo')">Exemplo Completo</button>
+      </div>
+    </div>
+
+    <h2 style="margin-top: 20px;">⚙️ Configurações</h2>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Resolução (DPI)</label>
         <select id="dpi">
-          <option value="203">203 DPI</option>
-          <option value="300">300 DPI</option>
-          <option value="600">600 DPI</option>
+          <option value="203">203 DPI (Padrão)</option>
+          <option value="300">300 DPI (Alta)</option>
+          <option value="600">600 DPI (Ultra)</option>
         </select>
-      </label>
-      <label>
-        Formato
+      </div>
+      <div class="form-group">
+        <label>Formato de Saída</label>
         <select id="formato">
-          <option value="png">PNG</option>
+          <option value="png">PNG (Recomendado)</option>
           <option value="jpeg">JPEG</option>
+          <option value="webp">WebP</option>
         </select>
-      </label>
+      </div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Largura (polegadas)</label>
+        <select id="largura">
+          <option value="4">4" (Padrão)</option>
+          <option value="6">6"</option>
+          <option value="8">8"</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Altura (polegadas)</label>
+        <select id="altura">
+          <option value="6">6" (Padrão)</option>
+          <option value="4">4"</option>
+          <option value="8">8"</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="dimensions-info" id="dimensoes">
+      📏 Dimensões: 812 x 1218 pixels
+    </div>
+
+    <div class="button-group full" style="margin-top: 20px;">
+      <button class="btn-primary" onclick="converter()">🚀 CONVERTER</button>
     </div>
 
     <div class="button-group">
-      <button class="btn-example" onclick="carregarExemplo()">📋 Exemplo</button>
-      <button class="btn-clear" onclick="limpar()">🗑️ Limpar</button>
+      <button class="btn-secondary" onclick="limpar()">🗑️ Limpar</button>
+      <button class="btn-secondary" onclick="copiar_codigo()">📋 Copiar</button>
     </div>
 
-    <button class="btn-convert" onclick="converter()">🚀 CONVERTER</button>
-
-    <div class="button-group" style="margin-top: 10px;">
-      <button class="btn-download" id="btnDownload" disabled onclick="download()">⬇️ BAIXAR PNG</button>
-    </div>
-
-    <div id="status" class="status"></div>
-
-    <div class="info-box">
-      <strong>💡 Dica:</strong> Cole um código ZPL válido e clique em CONVERTER para visualizar a etiqueta. Use o botão de exemplo para testar.
-    </div>
+    <div id="status" class="status-box"></div>
   </div>
 
-  <div class="panel">
+  <!-- PAINEL PREVIEW -->
+  <div class="panel panel-preview">
     <h2>👁️ Preview da Etiqueta</h2>
+    
     <div id="preview">
       <div class="preview-placeholder">
-        <p>📷</p>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+          <line x1="9" y1="9" x2="15" y2="9"></line>
+          <line x1="9" y1="15" x2="15" y2="15"></line>
+        </svg>
         <p>Sua etiqueta aparecerá aqui</p>
+        <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
       </div>
     </div>
+
+    <div class="download-options">
+      <button id="btn-download" class="btn-success" disabled onclick="baixar()">
+        ⬇️ BAIXAR
+      </button>
+      <button id="btn-imprimir" class="btn-secondary" disabled onclick="imprimir()">
+        🖨️ IMPRIMIR
+      </button>
+    </div>
+
+    <div id="status-preview" class="status-box"></div>
   </div>
 </div>
 
 <script>
-let imagemGerada = null;
-let canvasGerado = null;
+let canvasAtual = null;
+let blobAtual = null;
 
-async function converter() {
-  const zpl = document.getElementById('zpl').value.trim();
-  const dpi = document.getElementById('dpi').value;
-  const formato = document.getElementById('formato').value;
-
-  if (!zpl) {
-    mostrarStatus('Por favor, cole um código ZPL', 'error');
-    return;
-  }
-
-  mostrarStatus('⏳ Processando...', 'info');
-  mostrarCarregando(true);
-
-  try {
-    // Simular processamento
-    await new Promise(r => setTimeout(r, 500));
-
-    // Criar canvas para desenhar a etiqueta
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-
-    // Dimensões padrão para 203 DPI (4x6 polegadas)
-    const pixelsPorPolegada = parseInt(dpi);
-    const largura = Math.round(4 * pixelsPorPolegada);
-    const altura = Math.round(6 * pixelsPorPolegada);
-
-    canvas.width = largura;
-    canvas.height = altura;
-
-    // Fundo branco
-    ctx.fillStyle = 'white';
-    ctx.fillRect(0, 0, largura, altura);
-
-    // Parsear ZPL básico
-    const linhas = zpl.split('\n');
-    const elementos = [];
-    let posX = 0, posY = 0, tamanho = 12, texto = '';
-
-    for (let linha of linhas) {
-      if (linha.startsWith('^FT')) {
-        const matches = linha.match(/\^FT(\d+),(\d+)/);
-        if (matches) {
-          posX = parseInt(matches[1]);
-          posY = parseInt(matches[2]);
-        }
-      } else if (linha.startsWith('^A0')) {
-        const matches = linha.match(/\^A0[A-Z]?,(\d+)/);
-        if (matches) tamanho = parseInt(matches[1]);
-      } else if (linha.startsWith('^BC')) {
-        const matches = linha.match(/\^FD([^\^]+)/);
-        if (matches) {
-          texto = matches[1].replace(/\^FS/, '');
-          // Desenhar código de barras
-          try {
-            const tempCanvas = document.createElement('canvas');
-            JsBarcode(tempCanvas, texto, {
-              format: 'CODE128',
-              width: 2,
-              height: 80,
-              displayValue: false
-            });
-            ctx.drawImage(tempCanvas, posX, posY);
-          } catch (e) {
-            console.log('Erro ao gerar código de barras:', e);
-          }
-        }
-      } else if (linha.startsWith('^FD')) {
-        texto = linha.replace(/\^FD/, '').replace(/\^FS/, '');
-        if (texto) {
-          ctx.fillStyle = 'black';
-          ctx.font = `${tamanho}px Arial`;
-          ctx.fillText(texto, posX, posY + tamanho);
-        }
-      }
-    }
-
-    // Converter canvas para imagem
-    canvasGerado = canvas;
-    const dataUrl = canvas.toDataURL(`image/${formato}`, 0.95);
-    imagemGerada = dataUrl;
-
-    // Mostrar preview
-    const img = document.createElement('img');
-    img.src = dataUrl;
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '100%';
-
-    const previewDiv = document.getElementById('preview');
-    previewDiv.innerHTML = '';
-    previewDiv.appendChild(img);
-
-    // Habilitar download
-    document.getElementById('btnDownload').disabled = false;
-    document.getElementById('formato').disabled = true;
-
-    mostrarStatus(`✅ Etiqueta gerada com sucesso! (${largura}x${altura}px @ ${dpi} DPI)`, 'success');
-
-  } catch (e) {
-    mostrarStatus('❌ Erro: ' + e.message, 'error');
-    console.error('Erro:', e);
-  } finally {
-    mostrarCarregando(false);
-  }
-}
-
-function download() {
-  if (!imagemGerada) {
-    mostrarStatus('Gere uma etiqueta primeiro!', 'error');
-    return;
-  }
-
-  const link = document.createElement('a');
-  const formato = document.getElementById('formato').value;
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  
-  link.href = imagemGerada;
-  link.download = `etiqueta-${timestamp}.${formato}`;
-  link.click();
-
-  mostrarStatus('📥 Download iniciado!', 'success');
-}
-
-function limpar() {
-  document.getElementById('zpl').value = '';
-  document.getElementById('preview').innerHTML = '<div class="preview-placeholder"><p>📷</p><p>Sua etiqueta aparecerá aqui</p></div>';
-  document.getElementById('btnDownload').disabled = true;
-  document.getElementById('formato').disabled = false;
-  document.getElementById('status').innerHTML = '';
-  imagemGerada = null;
-  canvasGerado = null;
-}
-
-function carregarExemplo() {
-  document.getElementById('zpl').value = `^XA
+const exemplos = {
+  simples: `^XA
 ^MMT
 ^PW812
 ^LL406
 ^LS0
-^FT50,50^A0N,50,50^FDProduto Exemplo^FS
-^FT50,150^BCN,100,Y,N,N
-^FD1234567890^FS
-^FT50,250^A0N,30,30^FDPRECO: R$ 99,90^FS
-^XZ`;
-  mostrarStatus('📋 Exemplo carregado. Clique em CONVERTER!', 'success');
+^FT50,50^A0N,50,50^FDProduto Teste^FS
+^FT50,150^A0N,30,30^FDCódigo: 123456^FS
+^FT50,250^A0N,25,25^FDPreço: R$ 99,99^FS
+^XZ`,
+
+  completo: `^XA
+^MMT
+^PW812
+^LL1218
+^LS0
+^FT50,50^A0N,60,60^FDAuditório Shopee^FS
+^FT50,150^A0N,40,40^FDProduto Premium^FS
+^FT50,250^BCN,100,Y,N,N,N
+^FD9876543210123^FS
+^FT50,400^A0N,35,35^FDSKU: SKU-2024-001^FS
+^FT50,500^A0N,30,30^FDPreço: R$ 259,90^FS
+^FT50,600^A0N,25,25^FDValidade: 31/12/2025^FS
+^FT50,700^A0N,25,25^FDLote: 202408001^FS
+^XZ`
+};
+
+function abrir_aba(aba, botao) {
+  document.querySelectorAll('[id^="aba-"]').forEach(el => el.classList.add('hidden'));
+  document.getElementById('aba-' + aba).classList.remove('hidden');
+  
+  document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+  if (botao) {
+    botao.classList.add('active');
+  }
 }
 
-function mostrarStatus(msg, tipo) {
-  const status = document.getElementById('status');
-  status.textContent = msg;
-  status.className = `status ${tipo}`;
-  setTimeout(() => {
-    if (tipo === 'success') status.style.display = 'none';
-  }, 3000);
+function carregar_exemplo(tipo) {
+  document.getElementById('zpl').value = exemplos[tipo];
+  const botaoManual = document.querySelector('.tab-button:first-child');
+  abrir_aba('manual', botaoManual);
+  mostrar_status('✅ Exemplo carregado! Clique em CONVERTER', 'success', 'status');
 }
 
-function mostrarCarregando(visivel) {
-  const loading = document.querySelector('.loading');
-  if (loading) loading.style.display = visivel ? 'block' : 'none';
+function atualizar_dimensoes() {
+  const dpi = parseInt(document.getElementById('dpi').value);
+  const largura = parseInt(document.getElementById('largura').value);
+  const altura = parseInt(document.getElementById('altura').value);
+  
+  const pixels_largura = Math.round(largura * dpi);
+  const pixels_altura = Math.round(altura * dpi);
+  
+  document.getElementById('dimensoes').textContent = 
+    `📏 Dimensões: ${pixels_largura} x ${pixels_altura} pixels @ ${dpi} DPI`;
 }
 
-// Carregar exemplo ao abrir
-window.addEventListener('load', () => {
-  carregarExemplo();
-  limpar();
-});
+document.getElementById('dpi').addEventListener('change', atualizar_dimensoes);
+document.getElementById('largura').addEventListener('change', atualizar_dimensoes);
+document.getElementById('altura').addEventListener('change', atualizar_dimensoes);
+
+async function converter() {
+  const zpl = document.getElementById('zpl').value.trim();
+  if (!zpl) {
+    mostrar_status('❌ Cole um código ZPL válido', 'error', 'status');
+    return;
+  }
+
+  const dpi = parseInt(document.getElementById('dpi').value);
+  const largura = parseInt(document.getElementById('largura').value);
+  const altura = parseInt(document.getElementById('altura').value);
+
+  mostrar_status('⏳ Processando...', 'info', 'status');
+
+  try {
+    await new Promise(r => setTimeout(r, 300));
+
+    const pixels_largura = Math.round(largura * dpi);
+    const pixels_altura = Math.round(altura * dpi);
+
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    canvas.width = pixels_largura;
+    canvas.height = pixels_altura;
+
+    // Fundo branco
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Parsear e desenhar ZPL
+    desenhar_zpl(ctx, zpl, pixels_largura, pixels_altura);
+
+    canvasAtual = canvas;
+    blobAtual = null;
+
+    // Mostrar preview
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
+    
+    const img = document.createElement('img');
+    img.src = canvas.toDataURL('image/png');
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+    preview.appendChild(img);
+
+    document.getElementById('btn-download').disabled = false;
+    document.getElementById('btn-imprimir').disabled = false;
+
+    mostrar_status(`✅ Etiqueta gerada! (${pixels_largura}x${pixels_altura}px)`, 'success', 'status');
+
+  } catch (e) {
+    mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
+    console.error(e);
+  }
+}
+
+function desenhar_zpl(ctx, zpl, largura, altura) {
+  let posX = 0, posY = 0;
+  let tamanhoFonte = 12;
+  let fontePadrao = 'Arial';
+
+  const linhas = zpl.split('\n');
+
+  for (let linha of linhas) {
+    linha = linha.trim();
+
+    if (linha.startsWith('^FT')) {
+      const m = linha.match(/\^FT(\d+),(\d+)/);
+      if (m) {
+        posX = parseInt(m[1]);
+        posY = parseInt(m[2]);
+      }
+    }
+    
+    else if (linha.startsWith('^A0') || linha.startsWith('^A@')) {
+      const m = linha.match(/\^A[0@][A-Z]?,(\d+)/);
+      if (m) tamanhoFonte = Math.max(8, parseInt(m[1]) / 10);
+    }
+    
+    else if (linha.startsWith('^BC') || linha.startsWith('^B1')) {
+      const prox = linhas[linhas.indexOf(linha) + 1] || '';
+      const m = prox.match(/\^FD([^\^]+)/);
+      if (m) {
+        const codigo = m[1].replace(/\^FS/, '').trim();
+        try {
+          const canvas_temp = document.createElement('canvas');
+          JsBarcode(canvas_temp, codigo, {
+            format: 'CODE128',
+            width: 2,
+            height: 60,
+            displayValue: false,
+            margin: 0
+          });
+          ctx.drawImage(canvas_temp, posX, posY);
+        } catch (e) {
+          console.log('Erro ao gerar código de barras:', e);
+        }
+      }
+    }
+    
+    else if (linha.startsWith('^BQ')) {
+      const prox = linhas[linhas.indexOf(linha) + 1] || '';
+      const m = prox.match(/\^FD([^\^]+)/);
+      if (m) {
+        const qr_data = m[1].replace(/\^FS/, '').trim();
+        try {
+          const canvas_temp = document.createElement('canvas');
+          QRCode.toCanvas(canvas_temp, qr_data, { width: 100, margin: 0 }, function(error) {
+            if (!error) {
+              ctx.drawImage(canvas_temp, posX, posY);
+            }
+          });
+        } catch (e) {
+          console.log('Erro ao gerar QR code:', e);
+        }
+      }
+    }
+    
+    else if (linha.startsWith('^FD')) {
+      const m = linha.match(/\^FD([^\^]+)/);
+      if (m) {
+        let texto = m[1].replace(/\^FS/, '').trim();
+        
+        ctx.fillStyle = '#000000';
+        ctx.font = `${tamanhoFonte}px ${fontePadrao}`;
+        ctx.textBaseline = 'top';
+        ctx.fillText(texto, posX, posY);
+      }
+    }
+  }
+}
+
+async function baixar() {
+  if (!canvasAtual) {
+    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status');
+    return;
+  }
+
+  const formato = document.getElementById('formato').value;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  const tipo_mime = `image/${formato === 'jpeg' ? 'jpeg' : formato}`;
+
+  canvasAtual.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `etiqueta-${timestamp}.${formato}`;
+    link.click();
+    URL.revokeObjectURL(url);
+    
+    mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
+  }, tipo_mime, 0.95);
+}
+
+function imprimir() {
+  if (!canvasAtual) {
+    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
+    return;
+  }
+
+  const janela = window.open('', '', 'width=800,height=600');
+  const img = canvasAtual.toDataURL('image/png');
+  
+  janela.document.write(`
+    <html>
+    <head><title>Imprimir Etiqueta</title></head>
+    <body style="margin: 0; padding: 20px; text-align: center;">
+      <img src="${img}" style="max-width: 100%; max-height: 100%;">
+      <p style="margin-top: 20px; font-size: 12px; color: #999;">
+        Pressione Ctrl+P ou Cmd+P para imprimir
+      </p>
+    </body>
+    </html>
+  `);
+  
+  janela.document.close();
+  setTimeout(() => janela.print(), 500);
+  
+  mostrar_status('🖨️ Janela de impressão aberta', 'success', 'status-preview');
+}
+
+function copiar_codigo() {
+  const texto = document.getElementById('zpl').value;
+  navigator.clipboard.writeText(texto).then(() => {
+    mostrar_status('✅ Código copiado!', 'success', 'status');
+  });
+}
+
+function limpar() {
+  document.getElementById('zpl').value = '';
+  document.getElementById('preview').innerHTML = `
+    <div class="preview-placeholder">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="9" y1="9" x2="15" y2="9"></line>
+        <line x1="9" y1="15" x2="15" y2="15"></line>
+      </svg>
+      <p>Sua etiqueta aparecerá aqui</p>
+      <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
+    </div>
+  `;
+  document.getElementById('btn-download').disabled = true;
+  document.getElementById('btn-imprimir').disabled = true;
+  canvasAtual = null;
+  blobAtual = null;
+  document.getElementById('status').classList.remove('show');
+  document.getElementById('status-preview').classList.remove('show');
+}
+
+function mostrar_status(msg, tipo, elemento_id = 'status') {
+  const el = document.getElementById(elemento_id);
+  el.textContent = msg;
+  el.className = `status-box show ${tipo}`;
+  
+  if (tipo === 'success') {
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+}
+
+// Inicializar
+atualizar_dimensoes();
+carregar_exemplo('simples');
 </script>
 
 </body>
