@@ -1,201 +1,25 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter · Auditoria.Shopee</title>
+  <title>ZPL Converter</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { background: #FBF8F3; color: #14110F; font-family: 'Inter', sans-serif; }
-    
-    header { border-bottom: 1px solid #DCD3C2; padding: 20px 0; }
-    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 28px; }
-    .brand { font-size: 22px; font-weight: 700; }
-    .brand span { color: #C2552F; }
-    nav { display: flex; gap: 30px; margin-top: 20px; }
-    nav a { text-decoration: none; color: #14110F; font-size: 14px; }
-    nav a.active { color: #C2552F; font-weight: 600; }
-
-    .converter { padding: 50px 0; }
-    .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 40px; }
-    @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
-
-    .panel { display: flex; flex-direction: column; gap: 20px; }
-    .panel h3 { font-size: 18px; font-weight: 700; }
-    label { font-size: 12px; color: #8C8570; text-transform: uppercase; display: block; margin-bottom: 8px; }
-    
-    textarea {
-      width: 100%;
-      height: 300px;
-      padding: 16px;
-      font-family: monospace;
-      font-size: 13px;
-      border: 1px solid #DCD3C2;
-      border-radius: 3px;
-    }
-    
-    select {
-      width: 100%;
-      padding: 12px;
-      border: 1px solid #DCD3C2;
-      border-radius: 3px;
-      font-size: 14px;
-    }
-
-    button {
-      padding: 14px;
-      border: none;
-      border-radius: 3px;
-      font-weight: 700;
-      cursor: pointer;
-      font-size: 14px;
-    }
-
-    .btn-primary {
-      width: 100%;
-      background: #C2552F;
-      color: white;
-      margin-top: 20px;
-    }
-    .btn-primary:hover { background: #963F22; }
-    .btn-primary:disabled { background: #B0A399; cursor: not-allowed; }
-
-    .btn-secondary {
-      background: #3F5B43;
-      color: white;
-      width: 100%;
-    }
-    .btn-secondary:hover { background: #2F5137; }
-
-    .preview-box {
-      background: white;
-      border: 1px solid #DCD3C2;
-      border-radius: 3px;
-      padding: 24px;
-      min-height: 400px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      overflow: auto;
-    }
-
-    #preview {
-      max-width: 100%;
-      max-height: 400px;
-      display: none;
-    }
-
-    .preview-text {
-      text-align: center;
-      color: #8C8570;
-    }
-
-    .error {
-      padding: 14px;
-      background: #FEE8E0;
-      border: 1px solid #E8C4B8;
-      border-radius: 3px;
-      color: #A3331F;
-      display: none;
-      margin-top: 16px;
-      font-size: 13px;
-    }
-    .error.show { display: block; }
-
-    #downloadBtn {
-      display: none;
-      width: 100%;
-      padding: 16px;
-      background: #3F5B43;
-      color: white;
-      font-weight: 700;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      margin-top: 12px;
-    }
-    #downloadBtn:hover { background: #2F5137; }
-    #downloadBtn.show { display: block; }
+    body { font-family: Arial; background: #f5f5f5; padding: 20px; }
+    .container { max-width: 1000px; margin: 0 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    textarea { width: 100%; height: 300px; padding: 10px; font-family: monospace; }
+    button { padding: 10px 20px; margin: 10px 0; cursor: pointer; width: 100%; }
+    #preview { width: 100%; border: 1px solid #ccc; background: white; min-height: 300px; display: flex; align-items: center; justify-content: center; }
+    #preview img { max-width: 100%; max-height: 100%; }
   </style>
 </head>
 <body>
 
-<header>
-  <div class="wrap">
-    <div class="brand">Auditoria<span>.</span>Shopee <small style="font-size: 12px; color: #8C8570;">ZPL CONVERTER</small></div>
-    <nav>
-      <a href="/">Dashboard</a>
-      <a href="/zpl-converter.html" class="active">Conversor ZPL</a>
-      <a href="/perfil.html">Perfil</a>
-    </nav>
-  </div>
-</header>
+<h1>ZPL Converter</h1>
 
-<section class="converter">
-  <div class="wrap">
-    <div class="grid">
-      
-      <div class="panel">
-        <h3>Código ZPL</h3>
-        
-        <div>
-          <label>Formato</label>
-          <select id="format">
-            <option value="png">PNG</option>
-            <option value="pdf">PDF</option>
-            <option value="jpg">JPG</option>
-          </select>
-        </div>
-
-        <div>
-          <label>Resolução (DPI)</label>
-          <select id="dpi">
-            <option value="203">203 DPI</option>
-            <option value="300">300 DPI</option>
-          </select>
-        </div>
-
-        <textarea id="zpl" placeholder="^XA^PW812^LL406^FT50,50^A0N,50,50^FDSeu Texto^FS^XZ"></textarea>
-
-        <button class="btn-secondary" onclick="exemplo()">📋 Carregar Exemplo</button>
-        <button class="btn-primary" id="btnConvert" onclick="converter()">🔄 Converter</button>
-
-        <div id="erro" class="error"></div>
-      </div>
-
-      <div class="panel">
-        <h3>Preview</h3>
-        
-        <div class="preview-box">
-          <div class="preview-text" id="textoVazio">
-            <p>Sua etiqueta aparecerá aqui</p>
-            <p style="font-size: 12px; margin-top: 8px;">Cole código ZPL e clique em "Converter"</p>
-          </div>
-          <img id="preview" alt="Preview" />
-        </div>
-
-        <button id="downloadBtn" onclick="download()">⬇️ Download Etiqueta</button>
-      </div>
-
-    </div>
-  </div>
-</section>
-
-<script>
-let imagemBlob = null;
-
-function mostraErro(msg) {
-  const el = document.getElementById('erro');
-  el.textContent = msg;
-  el.classList.add('show');
-}
-
-function limpaErro() {
-  document.getElementById('erro').classList.remove('show');
-}
-
-function exemplo() {
-  document.getElementById('zpl').value = `^XA
+<div class="container">
+  <div>
+    <h2>Código ZPL</h2>
+    <textarea id="zpl">^XA
 ^MMT
 ^PW812
 ^LL406
@@ -204,61 +28,71 @@ function exemplo() {
 ^FT50,150^BCN,100,Y,N,N
 ^FD1234567890^FS
 ^FT50,250^A0N,30,30^FDPRECO: R$ 99,90^FS
-^XZ`;
-  limpaErro();
-}
+^XZ</textarea>
+    <button onclick="converter()">CONVERTER</button>
+    <button onclick="download()">DOWNLOAD</button>
+  </div>
+
+  <div>
+    <h2>Preview</h2>
+    <div id="preview">
+      <p>Cole ZPL e clique CONVERTER</p>
+    </div>
+  </div>
+</div>
+
+<script>
+let blob = null;
 
 async function converter() {
-  limpaErro();
-  const zpl = document.getElementById('zpl').value.trim();
-  const dpi = document.getElementById('dpi').value;
-  const format = document.getElementById('format').value;
-
-  if (!zpl) {
-    mostraErro('Cole um código ZPL válido');
-    return;
-  }
-
-  const btn = document.getElementById('btnConvert');
-  btn.disabled = true;
-  btn.textContent = '⏳ Aguarde...';
-
+  const zpl = document.getElementById('zpl').value;
+  
+  console.log('Enviando ZPL:', zpl.substring(0, 50));
+  
   try {
-    const resp = await fetch('/api/convert-zpl', {
+    const r = await fetch('/api/convert-zpl', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ zpl, dpi, format })
+      body: JSON.stringify({ zpl, dpi: '203' })
     });
-
-    if (!resp.ok) throw new Error(`Erro ${resp.status}`);
-
-    imagemBlob = await resp.blob();
-    const url = URL.createObjectURL(imagemBlob);
-
-    document.getElementById('textoVazio').style.display = 'none';
-    document.getElementById('preview').src = url;
-    document.getElementById('preview').style.display = 'block';
-    document.getElementById('downloadBtn').classList.add('show');
-
-  } catch (err) {
-    mostraErro(err.message);
-  } finally {
-    btn.disabled = false;
-    btn.textContent = '🔄 Converter';
+    
+    console.log('Status:', r.status);
+    
+    if (!r.ok) throw new Error(`Erro ${r.status}`);
+    
+    blob = await r.blob();
+    console.log('Blob recebido:', blob.type, blob.size, 'bytes');
+    
+    const url = URL.createObjectURL(blob);
+    console.log('URL criada:', url);
+    
+    const img = document.createElement('img');
+    img.src = url;
+    img.onload = () => console.log('Imagem carregada!');
+    img.onerror = (e) => console.error('Erro ao carregar:', e);
+    
+    document.getElementById('preview').innerHTML = '';
+    document.getElementById('preview').appendChild(img);
+    
+    console.log('Imagem adicionada ao DOM');
+    
+  } catch (e) {
+    console.error('Erro:', e);
+    alert('Erro: ' + e.message);
   }
 }
 
 function download() {
-  if (!imagemBlob) return;
-  const url = URL.createObjectURL(imagemBlob);
+  if (!blob) {
+    alert('Converter primeiro!');
+    return;
+  }
+  const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = `etiqueta-${Date.now()}.png`;
+  a.download = 'etiqueta.png';
   a.click();
-  URL.revokeObjectURL(url);
 }
-
-window.onload = exemplo;
 </script>
 
 </body>
