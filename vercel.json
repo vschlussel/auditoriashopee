@@ -1,0 +1,12 @@
+{
+  "functions": {
+    "api/convert-zpl.js": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  },
+  "buildCommand": "npm install",
+  "env": {
+    "NODE_ENV": "production"
+  }
+}
