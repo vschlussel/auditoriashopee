@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZPL Converter - Conversor de Etiquetas</title>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      background: white;
+      border-radius: 10px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    .panel {
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel:first-child {
+      background: #f8f9fa;
+      border-right: 1px solid #e9ecef;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 10px;
+      font-size: 24px;
+    }
+
+    h2 {
+      color: #555;
+      font-size: 16px;
+      margin: 20px 0 10px 0;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    textarea {
+      width: 100%;
+      height: 250px;
+      padding: 12px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      border: 2px solid #dee2e6;
+      border-radius: 5px;
+      resize: vertical;
+      line-height: 1.5;
+      color: #333;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 20px 0;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 14px;
+      font-weight: 600;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-convert {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      grid-column: 1 / -1;
+    }
+
+    .btn-convert:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-download {
+      background: #28a745;
+      color: white;
+    }
+
+    .btn-download:hover:not(:disabled) {
+      background: #218838;
+      transform: translateY(-2px);
+    }
+
+    .btn-download:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      opacity: 0.6;
+    }
+
+    .btn-clear {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #5a6268;
+      transform: translateY(-2px);
+    }
+
+    .btn-example {
+      background: #17a2b8;
+      color: white;
+      font-size: 12px;
+    }
+
+    .btn-example:hover {
+      background: #138496;
+      transform: translateY(-2px);
+    }
+
+    #preview {
+      width: 100%;
+      height: 100%;
+      border: 2px dashed #dee2e6;
+      background: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 5px;
+      min-height: 400px;
+      position: relative;
+      overflow: auto;
+    }
+
+    #preview img,
+    #preview canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      padding: 10px;
+    }
+
+    .preview-placeholder {
+      text-align: center;
+      color: #999;
+    }
+
+    .preview-placeholder p {
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .info-box {
+      background: #e7f3ff;
+      border-left: 4px solid #2196F3;
+      padding: 10px 12px;
+      margin-top: 15px;
+      border-radius: 3px;
+      font-size: 12px;
+      color: #333;
+      line-height: 1.4;
+    }
+
+    .info-box strong {
+      color: #1976D2;
+    }
+
+    .status {
+      margin-top: 15px;
+      padding: 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      display: none;
+    }
+
+    .status.success {
+      background: #d4edda;
+      color: #155724;
+      border: 1px solid #c3e6cb;
+      display: block;
+    }
+
+    .status.error {
+      background: #f8d7da;
+      color: #721c24;
+      border: 1px solid #f5c6cb;
+      display: block;
+    }
+
+    .dpi-selector {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin: 15px 0;
+    }
+
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 12px;
+      font-weight: 600;
+      color: #555;
+    }
+
+    select {
+      padding: 8px;
+      border: 2px solid #dee2e6;
+      border-radius: 5px;
+      font-size: 13px;
+      cursor: pointer;
+      margin-top: 5px;
+    }
+
+    select:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    @media (max-width: 768px) {
+      .container {
+        grid-template-columns: 1fr;
+      }
+
+      .panel:first-child {
+        border-right: none;
+        border-bottom: 1px solid #e9ecef;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      color: #667eea;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="panel">
+    <h1>📝 ZPL Converter</h1>
+    <p style="color: #666; font-size: 13px; margin-bottom: 15px;">Converte código ZPL em imagem de etiqueta</p>
+
+    <h2>Código ZPL</h2>
+    <textarea id="zpl" placeholder="Cole aqui o código ZPL...">^XA
+^MMT
+^PW812
+^LL406
+^LS0
+^FT50,50^A0N,50,50^FDProduto Exemplo^FS
+^FT50,150^BCN,100,Y,N,N
+^FD1234567890^FS
+^FT50,250^A0N,30,30^FDPRECO: R$ 99,90^FS
+^XZ</textarea>
+
+    <div class="dpi-selector">
+      <label>
+        Resolução (DPI)
+        <select id="dpi">
+          <option value="203">203 DPI</option>
+          <option value="300">300 DPI</option>
+          <option value="600">600 DPI</option>
+        </select>
+      </label>
+      <label>
+        Formato
+        <select id="formato">
+          <option value="png">PNG</option>
+          <option value="jpeg">JPEG</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="button-group">
+      <button class="btn-example" onclick="carregarExemplo()">📋 Exemplo</button>
+      <button class="btn-clear" onclick="limpar()">🗑️ Limpar</button>
+    </div>
+
+    <button class="btn-convert" onclick="converter()">🚀 CONVERTER</button>
+
+    <div class="button-group" style="margin-top: 10px;">
+      <button class="btn-download" id="btnDownload" disabled onclick="download()">⬇️ BAIXAR PNG</button>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="info-box">
+      <strong>💡 Dica:</strong> Cole um código ZPL válido e clique em CONVERTER para visualizar a etiqueta. Use o botão de exemplo para testar.
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>👁️ Preview da Etiqueta</h2>
+    <div id="preview">
+      <div class="preview-placeholder">
+        <p>📷</p>
+        <p>Sua etiqueta aparecerá aqui</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let imagemGerada = null;
+let canvasGerado = null;
+
+async function converter() {
+  const zpl = document.getElementById('zpl').value.trim();
+  const dpi = document.getElementById('dpi').value;
+  const formato = document.getElementById('formato').value;
+
+  if (!zpl) {
+    mostrarStatus('Por favor, cole um código ZPL', 'error');
+    return;
+  }
+
+  mostrarStatus('⏳ Processando...', 'info');
+  mostrarCarregando(true);
+
+  try {
+    // Simular processamento
+    await new Promise(r => setTimeout(r, 500));
+
+    // Criar canvas para desenhar a etiqueta
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+
+    // Dimensões padrão para 203 DPI (4x6 polegadas)
+    const pixelsPorPolegada = parseInt(dpi);
+    const largura = Math.round(4 * pixelsPorPolegada);
+    const altura = Math.round(6 * pixelsPorPolegada);
+
+    canvas.width = largura;
+    canvas.height = altura;
+
+    // Fundo branco
+    ctx.fillStyle = 'white';
+    ctx.fillRect(0, 0, largura, altura);
+
+    // Parsear ZPL básico
+    const linhas = zpl.split('\n');
+    const elementos = [];
+    let posX = 0, posY = 0, tamanho = 12, texto = '';
+
+    for (let linha of linhas) {
+      if (linha.startsWith('^FT')) {
+        const matches = linha.match(/\^FT(\d+),(\d+)/);
+        if (matches) {
+          posX = parseInt(matches[1]);
+          posY = parseInt(matches[2]);
+        }
+      } else if (linha.startsWith('^A0')) {
+        const matches = linha.match(/\^A0[A-Z]?,(\d+)/);
+        if (matches) tamanho = parseInt(matches[1]);
+      } else if (linha.startsWith('^BC')) {
+        const matches = linha.match(/\^FD([^\^]+)/);
+        if (matches) {
+          texto = matches[1].replace(/\^FS/, '');
+          // Desenhar código de barras
+          try {
+            const tempCanvas = document.createElement('canvas');
+            JsBarcode(tempCanvas, texto, {
+              format: 'CODE128',
+              width: 2,
+              height: 80,
+              displayValue: false
+            });
+            ctx.drawImage(tempCanvas, posX, posY);
+          } catch (e) {
+            console.log('Erro ao gerar código de barras:', e);
+          }
+        }
+      } else if (linha.startsWith('^FD')) {
+        texto = linha.replace(/\^FD/, '').replace(/\^FS/, '');
+        if (texto) {
+          ctx.fillStyle = 'black';
+          ctx.font = `${tamanho}px Arial`;
+          ctx.fillText(texto, posX, posY + tamanho);
+        }
+      }
+    }
+
+    // Converter canvas para imagem
+    canvasGerado = canvas;
+    const dataUrl = canvas.toDataURL(`image/${formato}`, 0.95);
+    imagemGerada = dataUrl;
+
+    // Mostrar preview
+    const img = document.createElement('img');
+    img.src = dataUrl;
+    img.style.maxWidth = '100%';
+    img.style.maxHeight = '100%';
+
+    const previewDiv = document.getElementById('preview');
+    previewDiv.innerHTML = '';
+    previewDiv.appendChild(img);
+
+    // Habilitar download
+    document.getElementById('btnDownload').disabled = false;
+    document.getElementById('formato').disabled = true;
+
+    mostrarStatus(`✅ Etiqueta gerada com sucesso! (${largura}x${altura}px @ ${dpi} DPI)`, 'success');
+
+  } catch (e) {
+    mostrarStatus('❌ Erro: ' + e.message, 'error');
+    console.error('Erro:', e);
+  } finally {
+    mostrarCarregando(false);
+  }
+}
+
+function download() {
+  if (!imagemGerada) {
+    mostrarStatus('Gere uma etiqueta primeiro!', 'error');
+    return;
+  }
+
+  const link = document.createElement('a');
+  const formato = document.getElementById('formato').value;
+  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
+  
+  link.href = imagemGerada;
+  link.download = `etiqueta-${timestamp}.${formato}`;
+  link.click();
+
+  mostrarStatus('📥 Download iniciado!', 'success');
+}
+
+function limpar() {
+  document.getElementById('zpl').value = '';
+  document.getElementById('preview').innerHTML = '<div class="preview-placeholder"><p>📷</p><p>Sua etiqueta aparecerá aqui</p></div>';
+  document.getElementById('btnDownload').disabled = true;
+  document.getElementById('formato').disabled = false;
+  document.getElementById('status').innerHTML = '';
+  imagemGerada = null;
+  canvasGerado = null;
+}
+
+function carregarExemplo() {
+  document.getElementById('zpl').value = `^XA
+^MMT
+^PW812
+^LL406
+^LS0
+^FT50,50^A0N,50,50^FDProduto Exemplo^FS
+^FT50,150^BCN,100,Y,N,N
+^FD1234567890^FS
+^FT50,250^A0N,30,30^FDPRECO: R$ 99,90^FS
+^XZ`;
+  mostrarStatus('📋 Exemplo carregado. Clique em CONVERTER!', 'success');
+}
+
+function mostrarStatus(msg, tipo) {
+  const status = document.getElementById('status');
+  status.textContent = msg;
+  status.className = `status ${tipo}`;
+  setTimeout(() => {
+    if (tipo === 'success') status.style.display = 'none';
+  }, 3000);
+}
+
+function mostrarCarregando(visivel) {
+  const loading = document.querySelector('.loading');
+  if (loading) loading.style.display = visivel ? 'block' : 'none';
+}
+
+// Carregar exemplo ao abrir
+window.addEventListener('load', () => {
+  carregarExemplo();
+  limpar();
+});
+</script>
+
+</body>
+</html>
