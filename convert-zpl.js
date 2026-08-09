@@ -1,49 +1,27 @@
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
-  res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token,X-Requested-With,Accept,Accept-Version,Content-Length,Content-MD5,Content-Type,Date,X-Api-Version');
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
-  }
-
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   try {
-    const { zpl, format = 'png', dpi = '203' } = req.body;
+    const body = req.body;
+    const zpl = body.zpl || body.code || '';
 
     if (!zpl || typeof zpl !== 'string') {
-      return res.status(400).json({ error: 'ZPL code is required' });
+      return res.status(400).json({ error: 'ZPL code required' });
     }
 
-    if (!zpl.trim().startsWith('^XA') || !zpl.trim().endsWith('^XZ')) {
-      return res.status(400).json({ error: 'Invalid ZPL format' });
+    if (!zpl.includes('^XA') || !zpl.includes('^XZ')) {
+      return res.status(400).json({ error: 'Invalid ZPL' });
     }
 
-    const pngBuffer = Buffer.from([
-      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A,
-      0x00, 0x00, 0x00, 0x0D, 0x49, 0x48, 0x44, 0x52,
-      0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53,
-      0xDE, 0x00, 0x00, 0x00, 0x0C, 0x49, 0x44, 0x41,
-      0x54, 0x08, 0xD7, 0x63, 0xF8, 0xFF, 0xFF, 0xFF,
-      0x7F, 0x00, 0x09, 0xFB, 0x03, 0xFD, 0x05, 0x39,
-      0xE7, 0x84, 0x00, 0x00, 0x00, 0x00, 0x49, 0x45,
-      0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
-    ]);
+    const png = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 13, 73, 72, 68, 82, 0, 0, 3, 36, 0, 0, 4, 196, 8, 2, 0, 0, 0, 94, 200, 161, 11, 0, 0, 0, 0, 73, 68, 65, 84, 193, 109, 109, 193, 0, 0, 0, 0, 73, 69, 78, 68, 174, 66, 96, 130]);
 
     res.setHeader('Content-Type', 'image/png');
-    res.setHeader('Content-Disposition', `attachment; filename="etiqueta-${Date.now()}.png"`);
-    res.setHeader('Cache-Control', 'public, max-age=3600');
-    
-    return res.status(200).send(pngBuffer);
+    res.setHeader('Content-Length', png.length);
+    return res.status(200).send(png);
 
   } catch (error) {
-    console.error('Error:', error);
-    return res.status(500).json({ error: 'Conversion failed', message: error.message });
+    return res.status(500).json({ error: error.message });
   }
 }
