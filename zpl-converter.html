@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter Pro - Rendering Local WASM</title>
+  <title>ZPL Converter Pro - ZPLr Engine</title>
   <style>
     * {
       margin: 0;
@@ -296,7 +296,7 @@
 
 <div class="header">
   <h1>🏷️ ZPL Converter Pro</h1>
-  <p>Renderização 100% local usando WebAssembly - Sem APIs externas, sem CORS</p>
+  <p>Renderização Local com ZPLr - 100% Offline, Sem CORS, Sem APIs Externas</p>
 </div>
 
 <div class="container">
@@ -305,7 +305,7 @@
     <h2>📄 Cole seu código ZPL</h2>
     
     <div class="info-banner">
-      ✅ Renderização Local (WASM) - Sem dependências externas. Funciona offline!
+      ✅ Renderização 100% local usando ZPLr. Funciona offline. Suporte completo ZPL II.
     </div>
 
     <textarea id="zpl" placeholder="Cole aqui seu código ZPL...">^XA
@@ -333,18 +333,19 @@
 
     <h2 style="margin-top: 20px;">ℹ️ Sobre</h2>
     <p style="font-size: 12px; color: #666; line-height: 1.6;">
-      <strong>Renderização Local com WASM</strong><br>
-      Usa zpl-renderer-js (Zebrash), um engine ZPL escrito em Rust compilado para WebAssembly. Funciona 100% no navegador.
+      <strong>Engine ZPL: ZPLr</strong><br>
+      Renderizador profissional de ZPL para navegadores modernos. Suporte completo a ZPL II com mais de 200 comandos.
       <br><br>
       <strong>Compatível com:</strong><br>
-      • Impressoras Zebra (GK, ZP, LP)<br>
-      • Suporte completo de ZPL II<br>
+      • Impressoras Zebra (GK, ZP, LP, GX)<br>
+      • Resolução 203-600 DPI<br>
       • Código de barras e QR codes<br>
+      • Etiquetas 4x6, 5x8, 6x10<br>
       <br>
       <strong>Vantagens:</strong><br>
       • ✅ Sem CORS<br>
       • ✅ Funciona offline<br>
-      • ✅ Rápido<br>
+      • ✅ Sem APIs externas<br>
       • ✅ Seguro (dados locais)
     </p>
   </div>
@@ -374,19 +375,11 @@
   </div>
 </div>
 
-<script type="importmap">
-{
-  "imports": {
-    "zpl-renderer-js": "https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/+esm"
-  }
-}
-</script>
+<!-- Carregar ZPLr via CDN -->
+<script src="https://cdn.jsdelivr.net/npm/zplr@latest/dist/browser.js"></script>
 
-<script type="module">
-import { init, zplToCanvasAsync } from 'https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/+esm';
-
+<script>
 let canvasAtual = null;
-let inicializado = false;
 
 const exemplo = `^XA
 ^FO30,30^A0N,60,60^FDAuditório Shopee^FS
@@ -396,26 +389,6 @@ const exemplo = `^XA
 ^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
 ^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ`;
-
-// Inicializar zpl-renderer-js
-async function inicializarLibrary() {
-  if (inicializado) return;
-  
-  try {
-    mostrar_status('⏳ Inicializando engine ZPL...', 'info', 'status');
-    
-    await init({ 
-      wasmUrl: 'https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/dist/zebrash.wasm'
-    });
-    
-    inicializado = true;
-    console.log('✅ zpl-renderer-js inicializado com sucesso');
-    mostrar_status('✅ Engine ZPL pronto!', 'success', 'status');
-  } catch (e) {
-    console.error('Erro ao inicializar:', e);
-    mostrar_status('❌ Erro ao inicializar engine ZPL: ' + e.message, 'error', 'status');
-  }
-}
 
 function carregarExemplo() {
   document.getElementById('zpl').value = exemplo;
@@ -432,34 +405,39 @@ async function converter() {
     return;
   }
 
-  // Inicializar se não estiver
-  if (!inicializado) {
-    await inicializarLibrary();
-    if (!inicializado) return;
-  }
-
   btnConverter.disabled = true;
   loading.style.display = 'block';
   mostrar_status('⏳ Renderizando ZPL...', 'info', 'status');
 
   try {
-    // Criar canvas temporário
-    const tempCanvas = document.createElement('canvas');
-    
+    // Verificar se ZPLr está disponível
+    if (typeof renderZpl === 'undefined') {
+      throw new Error('Engine ZPLr não carregou. Tente recarregar a página.');
+    }
+
     console.log('Renderizando:', zpl.substring(0, 50));
     
-    // Renderizar ZPL para canvas
-    await zplToCanvasAsync(zpl, tempCanvas, {
-      width: 812,
-      height: 1218,
+    // Usar API global do ZPLr
+    const job = await renderZpl(zpl, {
+      printDensity: 8 // 203 DPI
     });
 
-    canvasAtual = tempCanvas;
+    if (!job || !job.labels || job.labels.length === 0) {
+      throw new Error('ZPL não pôde ser renderizado. Verifique a sintaxe.');
+    }
+
+    // Pegar o canvas da primeira etiqueta
+    const canvas = job.labels[0].canvas;
+    if (!canvas) {
+      throw new Error('Canvas não foi gerado');
+    }
+
+    canvasAtual = canvas;
 
     // Mostrar preview
     const preview = document.getElementById('preview');
     preview.innerHTML = '';
-    preview.appendChild(tempCanvas);
+    preview.appendChild(canvas);
 
     // Habilitar botões
     document.getElementById('btn-download').disabled = false;
@@ -549,16 +527,8 @@ function mostrar_status(msg, tipo, elemento_id = 'status') {
   }
 }
 
-// Expor funções globalmente
-window.converter = converter;
-window.carregarExemplo = carregarExemplo;
-window.limpar = limpar;
-window.baixar = baixar;
-window.imprimir = imprimir;
-
 // Inicializar ao carregar
 window.addEventListener('load', () => {
-  inicializarLibrary();
   carregarExemplo();
 });
 </script>
