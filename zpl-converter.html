@@ -518,11 +518,12 @@ function desenhar_zpl(ctx, zpl, largura, altura) {
     ctx.fillStyle = '#FF0000';
     ctx.font = '20px Arial';
     ctx.fillText('Erro: Nenhum elemento ZPL encontrado', 30, 50);
+    return false;
   }
   
   console.log(`✅ Total renderizado: ${linhasDesenhadas} elementos`);
   
-  return linhasDesenhadas > 0;
+  return true;
 }
 
 async function converter() {
@@ -535,6 +536,21 @@ async function converter() {
   mostrar_status('⏳ Processando etiqueta...', 'info', 'status');
 
   try {
+    // Verificar se é código binárias/criptografado
+    if (zpl.includes('~DG') && !zpl.includes('^FD')) {
+      mostrar_status('❌ Erro: Nenhum elemento ZPL encontrado - Cole um código ZPL válido (não criptografado)', 'error', 'status');
+      
+      // Sugerir carregar exemplo
+      setTimeout(() => {
+        const resposta = confirm('Gostaria de carregar um exemplo de ZPL válido para testar?');
+        if (resposta) {
+          carregarExemplo();
+          mostrar_status('✅ Exemplo carregado! Clique em CONVERTER para gerar a etiqueta', 'success', 'status');
+        }
+      }, 500);
+      return;
+    }
+
     // Dimensões padrão 4x6 polegadas @ 203 DPI
     const pixels_largura = 812;   // 4 polegadas
     const pixels_altura = 1218;   // 6 polegadas
@@ -550,8 +566,15 @@ async function converter() {
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+    console.log('Canvas criado:', canvas.width, 'x', canvas.height);
+
     // Desenhar etiqueta
     const sucesso = desenhar_zpl(ctx, zpl, pixels_largura, pixels_altura);
+
+    if (!sucesso) {
+      mostrar_status('❌ Erro: Nenhum elemento ZPL válido encontrado. Verifique a sintaxe do código.', 'error', 'status');
+      return;
+    }
 
     canvasAtual = canvas;
 
