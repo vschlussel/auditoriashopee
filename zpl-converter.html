@@ -328,13 +328,13 @@
 let canvasAtual = null;
 
 const exemploSimples = `^XA
-^FT30,30^A0N,40,40^FDAuditório Shopee^FS
-^FT30,100^A0N,25,25^FDCódigo: 123456789^FS
-^FT30,160^BCN,80,Y,N,N,N
-^FD123456789^FS
-^FT30,260^A0N,25,25^FDSKU: SKU-2024-001^FS
-^FT30,300^A0N,25,25^FDPreço: R$ 99,90^FS
-^FT30,340^A0N,20,20^FDValidade: 31/12/2025^FS
+^FT50,50^A0N,60,60^FDAuditório Shopee^FS
+^FT50,150^A0N,40,40^FDProduto Premium^FS
+^FT50,220^BCN,100,Y,N,N,N
+^FD123456789012^FS
+^FT50,350^A0N,30,30^FDSKU: SKU-2024-001^FS
+^FT50,400^A0N,30,30^FDPreço: R$ 99,90^FS
+^FT50,450^A0N,25,25^FDValidade: 31/12/2025^FS
 ^XZ`;
 
 function carregarExemplo() {
@@ -343,16 +343,18 @@ function carregarExemplo() {
 }
 
 function desenhar_zpl(ctx, zpl, largura, altura) {
-  console.log('Iniciando parse ZPL...');
+  console.log('🎨 Iniciando parse ZPL...');
+  console.log('ZPL length:', zpl.length);
   
   let posX = 0, posY = 0;
-  let tamanhoFonte = 14;
+  let tamanhoFonte = 20;
   let fontePadrao = 'Arial';
   let proximoTipo = null;
   let linhasDesenhadas = 0;
   
   // Detectar gráficos complexos
   let temGrafico = zpl.includes('~DG') || zpl.includes('^XG') || zpl.includes('^GD');
+  console.log('Tem gráfico:', temGrafico);
   
   if (temGrafico) {
     console.warn('⚠️ Etiqueta contém gráficos binárias (Shopee)');
@@ -360,98 +362,165 @@ function desenhar_zpl(ctx, zpl, largura, altura) {
     zpl = zpl.replace(/~DG[^~]*/g, '').replace(/\^XG[^^\n]*/g, '').replace(/:[A-Z0-9]+\.[A-Z]+[^^\n]*/g, '');
   }
   
-  const comandoRegex = /\^([A-Z]{2})([A-Z])?([^^\n]*)/g;
-  let match;
+  console.log('ZPL após limpeza:', zpl.substring(0, 200));
   
-  while ((match = comandoRegex.exec(zpl)) !== null) {
-    const comando = match[1];
-    const parametros = match[3];
+  // Dividir por ^
+  const partes = zpl.split('^').filter(p => p.trim());
+  console.log('Partes encontradas:', partes.length);
+  
+  for (let i = 0; i < partes.length; i++) {
+    const parte = partes[i].trim();
     
-    // ^FT - Posição
+    if (!parte || parte.length < 2) continue;
+    
+    const comando = parte.substring(0, 2);
+    const parametros = parte.substring(2);
+    
+    console.log(`Processando: ^${comando}${parametros.substring(0, 30)}...`);
+    
+    // ^XA - Início
+    if (comando === 'XA') {
+      console.log('✓ Início do documento');
+      continue;
+    }
+    
+    // ^XZ - Fim
+    if (comando === 'XZ') {
+      console.log('✓ Fim do documento');
+      continue;
+    }
+    
+    // ^FT - Posição (X,Y)
     if (comando === 'FT') {
-      const partes = parametros.split(',');
-      posX = parseInt(partes[0]) || 0;
-      posY = parseInt(partes[1]) || 0;
+      const match = parametros.match(/(\d+),(\d+)/);
+      if (match) {
+        posX = parseInt(match[1]);
+        posY = parseInt(match[2]);
+        console.log(`  → Posição FT: ${posX},${posY}`);
+      }
     }
     
-    // ^A0 / ^A@ - Fonte
+    // ^A0 / ^A@ - Fonte (tipo, altura_horizontal, altura_vertical)
     else if (comando === 'A0' || comando === 'A@' || comando === 'A8') {
-      const partes = parametros.split(',');
-      tamanhoFonte = Math.max(10, parseInt(partes[1]) || 14);
+      const match = parametros.match(/[A-Z]?,(\d+),(\d+)/);
+      if (match) {
+        tamanhoFonte = Math.max(12, Math.floor(parseInt(match[1]) / 10));
+        console.log(`  → Fonte: ${tamanhoFonte}px`);
+      }
     }
     
-    // ^BC / ^B1 - Código de barras
+    // ^BC / ^B1 / ^BU - Código de barras
     else if (comando === 'BC' || comando === 'B1' || comando === 'BU') {
       proximoTipo = 'barcode';
+      console.log(`  → Próximo é barcode (${comando})`);
     }
     
-    // ^BQ - QR Code
+    // ^BQ / ^BZ - QR Code
     else if (comando === 'BQ' || comando === 'BZ') {
       proximoTipo = 'qrcode';
+      console.log(`  → Próximo é QR code`);
     }
     
-    // ^FD - Dados
+    // ^FD - Dados/Texto
     else if (comando === 'FD') {
-      const texto = parametros.replace(/FS.*$/, '').trim();
+      // Extrair texto até ^FS
+      let texto = parametros;
+      const fsIndex = texto.indexOf('FS');
+      if (fsIndex !== -1) {
+        texto = texto.substring(0, fsIndex);
+      }
       
-      if (!texto) continue;
+      texto = texto.trim();
+      
+      if (!texto) {
+        console.log(`  → Texto vazio`);
+        continue;
+      }
+      
+      console.log(`  → Texto: "${texto}"`);
       
       if (proximoTipo === 'barcode') {
+        console.log(`    🔹 Renderizando barcode: ${texto}`);
         try {
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = 400;
-          tempCanvas.height = 100;
+          tempCanvas.height = 120;
+          
           JsBarcode(tempCanvas, texto, {
             format: 'CODE128',
             width: 2,
-            height: 80,
+            height: 100,
             displayValue: false,
             margin: 0
           });
-          ctx.drawImage(tempCanvas, posX, posY);
+          
+          ctx.drawImage(tempCanvas, posX, posY - 100);
           linhasDesenhadas++;
-          console.log(`✓ Barcode: ${texto}`);
+          console.log(`    ✅ Barcode desenhado em ${posX},${posY}`);
         } catch(e) {
-          console.error('Erro barcode:', e);
+          console.error(`    ❌ Erro barcode:`, e);
         }
         proximoTipo = null;
       }
       else if (proximoTipo === 'qrcode') {
+        console.log(`    🔹 Renderizando QR code: ${texto}`);
         try {
           const tempCanvas = document.createElement('canvas');
           tempCanvas.width = 150;
           tempCanvas.height = 150;
-          QRCode.toCanvas(tempCanvas, texto, { width: 150, margin: 0 }, function(error) {
+          
+          QRCode.toCanvas(tempCanvas, texto, { 
+            width: 150, 
+            margin: 0,
+            errorCorrectionLevel: 'M'
+          }, function(error) {
             if (!error) {
               ctx.drawImage(tempCanvas, posX, posY);
-              linhasDesenhadas++;
+              console.log(`    ✅ QR code desenhado`);
             }
           });
+          linhasDesenhadas++;
         } catch(e) {
-          console.error('Erro QR:', e);
+          console.error(`    ❌ Erro QR:`, e);
         }
         proximoTipo = null;
       }
       else {
+        // Texto normal
+        console.log(`    🔹 Renderizando texto normal, tamanho: ${tamanhoFonte}px`);
+        
         ctx.fillStyle = '#000000';
-        ctx.font = `${tamanhoFonte}px ${fontePadrao}`;
+        ctx.font = `bold ${tamanhoFonte}px ${fontePadrao}`;
         ctx.textBaseline = 'top';
         
         try {
-          ctx.fillText(texto, posX, posY);
+          // Quebrar texto se for muito longo
+          if (texto.length > 50) {
+            const metade = Math.ceil(texto.length / 2);
+            ctx.fillText(texto.substring(0, metade), posX, posY);
+            ctx.fillText(texto.substring(metade), posX, posY + tamanhoFonte + 5);
+          } else {
+            ctx.fillText(texto, posX, posY);
+          }
+          
           linhasDesenhadas++;
-          console.log(`✓ Texto: ${texto}`);
+          console.log(`    ✅ Texto desenhado em ${posX},${posY}`);
         } catch(e) {
-          console.error('Erro texto:', e);
+          console.error(`    ❌ Erro ao desenhar texto:`, e);
         }
       }
     }
   }
   
-  console.log(`✅ Renderizados ${linhasDesenhadas} elementos`);
-  if (temGrafico) {
-    console.warn('⚠️ Gráficos binárias não renderizados (renderização de texto apenas)');
+  // Se nenhuma linha foi desenhada, desenhar mensagem de erro
+  if (linhasDesenhadas === 0) {
+    console.warn('⚠️ Nenhum elemento foi desenhado!');
+    ctx.fillStyle = '#FF0000';
+    ctx.font = '20px Arial';
+    ctx.fillText('Erro: Nenhum elemento ZPL encontrado', 30, 50);
   }
+  
+  console.log(`✅ Total renderizado: ${linhasDesenhadas} elementos`);
   
   return linhasDesenhadas > 0;
 }
