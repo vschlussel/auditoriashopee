@@ -3,9 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter Shopee - Gerador de Etiquetas Térmicas</title>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <title>ZPL Converter Pro - Labelary API</title>
   <style>
     * {
       margin: 0;
@@ -30,6 +28,10 @@
     .header h1 {
       font-size: 32px;
       margin-bottom: 5px;
+    }
+
+    .header p {
+      opacity: 0.9;
     }
 
     .container {
@@ -72,7 +74,7 @@
 
     textarea {
       width: 100%;
-      min-height: 200px;
+      min-height: 250px;
       padding: 12px;
       font-family: 'Monaco', monospace;
       font-size: 12px;
@@ -121,9 +123,14 @@
       padding: 13px 16px;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       transform: translateY(-1px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
     }
 
     .btn-secondary {
@@ -165,7 +172,7 @@
       margin-bottom: 16px;
     }
 
-    #preview canvas {
+    #preview img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
@@ -177,6 +184,10 @@
     .preview-placeholder {
       text-align: center;
       color: #9ca3af;
+    }
+
+    .preview-placeholder p {
+      margin: 10px 0;
     }
 
     .status-box {
@@ -241,6 +252,28 @@
     .download-options button {
       font-size: 12px;
       padding: 9px 12px;
+      margin: 0;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 10px;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
     }
 
     @media (max-width: 1024px) {
@@ -252,14 +285,46 @@
         border-right: none;
         border-bottom: 1px solid #e1e4e8;
       }
+
+      .panel {
+        max-height: none;
+      }
+    }
+
+    .config-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 16px;
+    }
+
+    .config-group label {
+      display: block;
+      font-size: 12px;
+      font-weight: 600;
+      color: #586069;
+      margin-bottom: 6px;
+    }
+
+    .config-group select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      font-size: 13px;
+    }
+
+    .config-group select:focus {
+      outline: none;
+      border-color: #667eea;
     }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>🏷️ ZPL Converter Shopee Pro</h1>
-  <p>Gerador profissional de etiquetas térmicas para impressoras Zebra</p>
+  <h1>🏷️ ZPL Converter Pro</h1>
+  <p>Conversor profissional de ZPL para PNG usando API Labelary</p>
 </div>
 
 <div class="container">
@@ -268,14 +333,39 @@
     <h2>📄 Cole seu código ZPL</h2>
     
     <div class="info-banner">
-      💡 Cole aqui o código ZPL da Shopee ou crie um personalizado
+      ✅ Funciona com ZPL legível (não criptografado). Envia para Labelary API para renderizar.
     </div>
 
-    <textarea id="zpl" placeholder="Cole aqui o código ZPL..."></textarea>
-
-    <div class="button-group full" style="margin-top: 0;">
-      <button class="btn-primary" onclick="converter()">🚀 CONVERTER</button>
+    <div class="config-group">
+      <div>
+        <label>Resolução (DPI)</label>
+        <select id="dpmm">
+          <option value="8">203 DPI (8 dpmm)</option>
+          <option value="12">300 DPI (12 dpmm)</option>
+          <option value="24">600 DPI (24 dpmm)</option>
+        </select>
+      </div>
+      <div>
+        <label>Tamanho da Etiqueta</label>
+        <select id="tamanho">
+          <option value="4x6">4 x 6 polegadas</option>
+          <option value="4x8">4 x 8 polegadas</option>
+          <option value="6x10">6 x 10 polegadas</option>
+          <option value="5x8">5 x 8 polegadas</option>
+        </select>
+      </div>
     </div>
+
+    <textarea id="zpl" placeholder="Cole aqui seu código ZPL...">^XA
+^FT30,50^A0N,60,60^FDAuditório Shopee^FS
+^FT30,150^A0N,35,35^FDProduto Premium^FS
+^FT30,220^A0N,25,25^FDCódigo: 123456789^FS
+^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FT30,330^A0N,25,25^FDPreço: R$ 99,90^FS
+^FT30,380^A0N,20,20^FDValidade: 31/12/2025^FS
+^XZ</textarea>
+
+    <button class="btn-primary" onclick="converter()" id="btnConverter">🚀 CONVERTER</button>
 
     <div class="button-group">
       <button class="btn-secondary" onclick="carregarExemplo()">📋 Exemplo</button>
@@ -284,18 +374,23 @@
 
     <div id="status" class="status-box"></div>
 
-    <h2 style="margin-top: 20px;">⚙️ Informações</h2>
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Processando com Labelary API...</p>
+    </div>
+
+    <h2 style="margin-top: 20px;">ℹ️ Sobre</h2>
     <p style="font-size: 12px; color: #666; line-height: 1.6;">
+      Este conversor usa a <strong>Labelary API</strong>, um serviço online gratuito que renderiza ZPL em tempo real.
+      <br><br>
       <strong>Compatível com:</strong><br>
-      • Impressoras Zebra GK/ZP/LP<br>
-      • Etiquetas 4x6, 5x8, 6x10<br>
+      • Impressoras Zebra (GK, ZP, LP)<br>
       • Resolução 203-600 DPI<br>
+      • Etiquetas 4x6, 5x8, 6x10<br>
       <br>
-      <strong>Formatos suportados:</strong><br>
-      • Texto e números<br>
-      • Código de barras (CODE128)<br>
-      • QR Code<br>
-      • Imagens e gráficos
+      <strong>Formatos de Saída:</strong><br>
+      • PNG (padrão)<br>
+      • PDF (via Labelary)
     </p>
   </div>
 
@@ -305,9 +400,9 @@
     
     <div id="preview">
       <div class="preview-placeholder">
-        <p style="font-size: 20px; margin-bottom: 10px;">📋</p>
+        <p style="font-size: 24px;">📋</p>
         <p>Sua etiqueta aparecerá aqui</p>
-        <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
+        <p style="font-size: 11px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
       </div>
     </div>
 
@@ -325,316 +420,120 @@
 </div>
 
 <script>
-let canvasAtual = null;
+let imagemAtual = null;
+let urlAtual = null;
 
-const exemploSimples = `^XA
-^FT50,50^A0N,60,60^FDAuditório Shopee^FS
-^FT50,150^A0N,40,40^FDProduto Premium^FS
-^FT50,220^BCN,100,Y,N,N,N
-^FD123456789012^FS
-^FT50,350^A0N,30,30^FDSKU: SKU-2024-001^FS
-^FT50,400^A0N,30,30^FDPreço: R$ 99,90^FS
-^FT50,450^A0N,25,25^FDValidade: 31/12/2025^FS
+const exemplo = `^XA
+^FT30,50^A0N,60,60^FDAuditório Shopee^FS
+^FT30,150^A0N,35,35^FDProduto Premium^FS
+^FT30,220^A0N,25,25^FDCódigo: 123456789^FS
+^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FT30,330^A0N,25,25^FDPreço: R$ 99,90^FS
+^FT30,380^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ`;
 
 function carregarExemplo() {
-  document.getElementById('zpl').value = exemploSimples;
-  mostrar_status('✅ Exemplo carregado!', 'success', 'status');
-}
-
-function desenhar_zpl(ctx, zpl, largura, altura) {
-  console.log('🎨 Iniciando parse ZPL...');
-  console.log('ZPL length:', zpl.length);
-  
-  let posX = 0, posY = 0;
-  let tamanhoFonte = 20;
-  let fontePadrao = 'Arial';
-  let proximoTipo = null;
-  let linhasDesenhadas = 0;
-  
-  // Detectar gráficos complexos
-  let temGrafico = zpl.includes('~DG') || zpl.includes('^XG') || zpl.includes('^GD');
-  console.log('Tem gráfico:', temGrafico);
-  
-  if (temGrafico) {
-    console.warn('⚠️ Etiqueta contém gráficos binárias (Shopee)');
-    // Remover referências a gráficos
-    zpl = zpl.replace(/~DG[^~]*/g, '').replace(/\^XG[^^\n]*/g, '').replace(/:[A-Z0-9]+\.[A-Z]+[^^\n]*/g, '');
-  }
-  
-  console.log('ZPL após limpeza:', zpl.substring(0, 200));
-  
-  // Dividir por ^
-  const partes = zpl.split('^').filter(p => p.trim());
-  console.log('Partes encontradas:', partes.length);
-  
-  for (let i = 0; i < partes.length; i++) {
-    const parte = partes[i].trim();
-    
-    if (!parte || parte.length < 2) continue;
-    
-    const comando = parte.substring(0, 2);
-    const parametros = parte.substring(2);
-    
-    console.log(`Processando: ^${comando}${parametros.substring(0, 30)}...`);
-    
-    // ^XA - Início
-    if (comando === 'XA') {
-      console.log('✓ Início do documento');
-      continue;
-    }
-    
-    // ^XZ - Fim
-    if (comando === 'XZ') {
-      console.log('✓ Fim do documento');
-      continue;
-    }
-    
-    // ^FT - Posição (X,Y)
-    if (comando === 'FT') {
-      const match = parametros.match(/(\d+),(\d+)/);
-      if (match) {
-        posX = parseInt(match[1]);
-        posY = parseInt(match[2]);
-        console.log(`  → Posição FT: ${posX},${posY}`);
-      }
-    }
-    
-    // ^A0 / ^A@ - Fonte (tipo, altura_horizontal, altura_vertical)
-    else if (comando === 'A0' || comando === 'A@' || comando === 'A8') {
-      const match = parametros.match(/[A-Z]?,(\d+),(\d+)/);
-      if (match) {
-        tamanhoFonte = Math.max(12, Math.floor(parseInt(match[1]) / 10));
-        console.log(`  → Fonte: ${tamanhoFonte}px`);
-      }
-    }
-    
-    // ^BC / ^B1 / ^BU - Código de barras
-    else if (comando === 'BC' || comando === 'B1' || comando === 'BU') {
-      proximoTipo = 'barcode';
-      console.log(`  → Próximo é barcode (${comando})`);
-    }
-    
-    // ^BQ / ^BZ - QR Code
-    else if (comando === 'BQ' || comando === 'BZ') {
-      proximoTipo = 'qrcode';
-      console.log(`  → Próximo é QR code`);
-    }
-    
-    // ^FD - Dados/Texto
-    else if (comando === 'FD') {
-      // Extrair texto até ^FS
-      let texto = parametros;
-      const fsIndex = texto.indexOf('FS');
-      if (fsIndex !== -1) {
-        texto = texto.substring(0, fsIndex);
-      }
-      
-      texto = texto.trim();
-      
-      if (!texto) {
-        console.log(`  → Texto vazio`);
-        continue;
-      }
-      
-      console.log(`  → Texto: "${texto}"`);
-      
-      if (proximoTipo === 'barcode') {
-        console.log(`    🔹 Renderizando barcode: ${texto}`);
-        try {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = 400;
-          tempCanvas.height = 120;
-          
-          JsBarcode(tempCanvas, texto, {
-            format: 'CODE128',
-            width: 2,
-            height: 100,
-            displayValue: false,
-            margin: 0
-          });
-          
-          ctx.drawImage(tempCanvas, posX, posY - 100);
-          linhasDesenhadas++;
-          console.log(`    ✅ Barcode desenhado em ${posX},${posY}`);
-        } catch(e) {
-          console.error(`    ❌ Erro barcode:`, e);
-        }
-        proximoTipo = null;
-      }
-      else if (proximoTipo === 'qrcode') {
-        console.log(`    🔹 Renderizando QR code: ${texto}`);
-        try {
-          const tempCanvas = document.createElement('canvas');
-          tempCanvas.width = 150;
-          tempCanvas.height = 150;
-          
-          QRCode.toCanvas(tempCanvas, texto, { 
-            width: 150, 
-            margin: 0,
-            errorCorrectionLevel: 'M'
-          }, function(error) {
-            if (!error) {
-              ctx.drawImage(tempCanvas, posX, posY);
-              console.log(`    ✅ QR code desenhado`);
-            }
-          });
-          linhasDesenhadas++;
-        } catch(e) {
-          console.error(`    ❌ Erro QR:`, e);
-        }
-        proximoTipo = null;
-      }
-      else {
-        // Texto normal
-        console.log(`    🔹 Renderizando texto normal, tamanho: ${tamanhoFonte}px`);
-        
-        ctx.fillStyle = '#000000';
-        ctx.font = `bold ${tamanhoFonte}px ${fontePadrao}`;
-        ctx.textBaseline = 'top';
-        
-        try {
-          // Quebrar texto se for muito longo
-          if (texto.length > 50) {
-            const metade = Math.ceil(texto.length / 2);
-            ctx.fillText(texto.substring(0, metade), posX, posY);
-            ctx.fillText(texto.substring(metade), posX, posY + tamanhoFonte + 5);
-          } else {
-            ctx.fillText(texto, posX, posY);
-          }
-          
-          linhasDesenhadas++;
-          console.log(`    ✅ Texto desenhado em ${posX},${posY}`);
-        } catch(e) {
-          console.error(`    ❌ Erro ao desenhar texto:`, e);
-        }
-      }
-    }
-  }
-  
-  // Se nenhuma linha foi desenhada, desenhar mensagem de erro
-  if (linhasDesenhadas === 0) {
-    console.warn('⚠️ Nenhum elemento foi desenhado!');
-    ctx.fillStyle = '#FF0000';
-    ctx.font = '20px Arial';
-    ctx.fillText('Erro: Nenhum elemento ZPL encontrado', 30, 50);
-    return false;
-  }
-  
-  console.log(`✅ Total renderizado: ${linhasDesenhadas} elementos`);
-  
-  return true;
+  document.getElementById('zpl').value = exemplo;
+  mostrar_status('✅ Exemplo carregado! Clique em CONVERTER', 'success', 'status');
 }
 
 async function converter() {
   const zpl = document.getElementById('zpl').value.trim();
+  const dpmm = document.getElementById('dpmm').value;
+  const tamanho = document.getElementById('tamanho').value;
+  const btnConverter = document.getElementById('btnConverter');
+  const loading = document.getElementById('loading');
+
   if (!zpl) {
     mostrar_status('❌ Cole um código ZPL válido', 'error', 'status');
     return;
   }
 
-  mostrar_status('⏳ Processando etiqueta...', 'info', 'status');
+  // Desabilitar botão e mostrar loading
+  btnConverter.disabled = true;
+  loading.style.display = 'block';
+  mostrar_status('⏳ Enviando para Labelary API...', 'info', 'status');
 
   try {
-    // Verificar se é código binárias/criptografado
-    if (zpl.includes('~DG') && !zpl.includes('^FD')) {
-      mostrar_status('❌ Erro: Nenhum elemento ZPL encontrado - Cole um código ZPL válido (não criptografado)', 'error', 'status');
-      
-      // Sugerir carregar exemplo
-      setTimeout(() => {
-        const resposta = confirm('Gostaria de carregar um exemplo de ZPL válido para testar?');
-        if (resposta) {
-          carregarExemplo();
-          mostrar_status('✅ Exemplo carregado! Clique em CONVERTER para gerar a etiqueta', 'success', 'status');
-        }
-      }, 500);
-      return;
+    // Construir URL da API Labelary
+    // Formato: GET http://api.labelary.com/v1/printers/{dpmm}/labels/{width}x{height}/{index}/{zpl}
+    
+    const encodedZpl = encodeURIComponent(zpl);
+    const url = `https://api.labelary.com/v1/printers/${dpmm}/labels/${tamanho}/0/?${encodedZpl}`;
+
+    console.log('URL da API:', url);
+
+    // Fazer requisição
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Accept': 'image/png'
+      },
+      body: encodedZpl
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro da API: ${response.status} ${response.statusText}`);
     }
 
-    // Dimensões padrão 4x6 polegadas @ 203 DPI
-    const pixels_largura = 812;   // 4 polegadas
-    const pixels_altura = 1218;   // 6 polegadas
-
-    const canvas = document.createElement('canvas');
-    canvas.width = pixels_largura;
-    canvas.height = pixels_altura;
-
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Não foi possível criar contexto 2D');
-
-    // Fundo branco
-    ctx.fillStyle = '#ffffff';
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-    console.log('Canvas criado:', canvas.width, 'x', canvas.height);
-
-    // Desenhar etiqueta
-    const sucesso = desenhar_zpl(ctx, zpl, pixels_largura, pixels_altura);
-
-    if (!sucesso) {
-      mostrar_status('❌ Erro: Nenhum elemento ZPL válido encontrado. Verifique a sintaxe do código.', 'error', 'status');
-      return;
-    }
-
-    canvasAtual = canvas;
+    // Converter resposta para blob
+    const blob = await response.blob();
+    urlAtual = URL.createObjectURL(blob);
+    imagemAtual = blob;
 
     // Mostrar preview
     const preview = document.getElementById('preview');
     preview.innerHTML = '';
     
     const img = document.createElement('img');
-    img.src = canvas.toDataURL('image/png');
+    img.src = urlAtual;
     img.style.maxWidth = '100%';
     img.style.maxHeight = '100%';
     preview.appendChild(img);
 
+    // Habilitar botões
     document.getElementById('btn-download').disabled = false;
     document.getElementById('btn-imprimir').disabled = false;
 
-    let msg = '✅ Etiqueta gerada com sucesso!';
-    if (zpl.includes('~DG') || zpl.includes('^XG')) {
-      msg += ' (⚠️ Gráficos binárias não renderizados)';
-    }
-    mostrar_status(msg, 'success', 'status');
+    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
 
   } catch (e) {
     mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
-    console.error(e);
+    console.error('Erro:', e);
+  } finally {
+    btnConverter.disabled = false;
+    loading.style.display = 'none';
   }
 }
 
 function baixar() {
-  if (!canvasAtual) {
+  if (!imagemAtual) {
     mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
     return;
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  canvasAtual.toBlob(blob => {
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `etiqueta-shopee-${timestamp}.png`;
-    link.click();
-    URL.revokeObjectURL(url);
-    mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
-  }, 'image/png');
+  const link = document.createElement('a');
+  link.href = urlAtual;
+  link.download = `etiqueta-${timestamp}.png`;
+  link.click();
+  
+  mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
 }
 
 function imprimir() {
-  if (!canvasAtual) {
+  if (!urlAtual) {
     mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
     return;
   }
 
-  const janela = window.open('', '', 'width=600,height=800');
-  const img = canvasAtual.toDataURL('image/png');
-  
+  const janela = window.open('', '', 'width=800,height=600');
   janela.document.write(`
     <html>
     <head><title>Imprimir Etiqueta</title></head>
     <body style="margin: 0; padding: 20px; text-align: center;">
-      <img src="${img}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
+      <img src="${urlAtual}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
       <p style="margin-top: 20px; font-size: 12px; color: #666;">
         Pressione Ctrl+P para imprimir
       </p>
@@ -652,14 +551,15 @@ function limpar() {
   document.getElementById('zpl').value = '';
   document.getElementById('preview').innerHTML = `
     <div class="preview-placeholder">
-      <p style="font-size: 20px; margin-bottom: 10px;">📋</p>
+      <p style="font-size: 24px;">📋</p>
       <p>Sua etiqueta aparecerá aqui</p>
-      <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
+      <p style="font-size: 11px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
     </div>
   `;
   document.getElementById('btn-download').disabled = true;
   document.getElementById('btn-imprimir').disabled = true;
-  canvasAtual = null;
+  imagemAtual = null;
+  urlAtual = null;
   document.getElementById('status').innerHTML = '';
 }
 
@@ -673,10 +573,9 @@ function mostrar_status(msg, tipo, elemento_id = 'status') {
   }
 }
 
-// Inicializar
+// Carregar exemplo ao abrir
 window.addEventListener('load', () => {
   carregarExemplo();
-  limpar();
 });
 </script>
 
