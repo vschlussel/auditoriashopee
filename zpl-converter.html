@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter Pro - ZPLr Engine</title>
+  <title>Gerador de Etiquetas Shopee - Completo</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <style>
     * {
       margin: 0;
@@ -19,7 +20,7 @@
     }
 
     .header {
-      max-width: 1400px;
+      max-width: 1200px;
       margin: 0 auto 20px;
       color: white;
       text-align: center;
@@ -32,80 +33,121 @@
 
     .header p {
       opacity: 0.9;
+      font-size: 14px;
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1200px;
       margin: 0 auto;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 20px;
       background: white;
       border-radius: 12px;
       overflow: hidden;
       box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     }
 
-    .panel {
+    .tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0;
+      background: #f8f9fa;
+      border-bottom: 2px solid #e1e4e8;
+    }
+
+    .tab-button {
+      padding: 15px 20px;
+      border: none;
+      background: transparent;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      color: #586069;
+      border-bottom: 3px solid transparent;
+      transition: all 0.3s;
+      text-align: center;
+    }
+
+    .tab-button:hover {
+      background: #eff6ff;
+      color: #0c2d6b;
+    }
+
+    .tab-button.active {
+      color: #667eea;
+      border-bottom-color: #667eea;
+      background: #eff6ff;
+    }
+
+    .tab-content {
+      display: none;
       padding: 30px;
-      display: flex;
-      flex-direction: column;
-      max-height: calc(100vh - 180px);
-      overflow-y: auto;
+      animation: fadeIn 0.3s ease;
     }
 
-    .panel-editor {
-      background: #fafbfc;
-      border-right: 1px solid #e1e4e8;
+    .tab-content.active {
+      display: block;
     }
 
-    .panel-preview {
-      background: #ffffff;
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+
+    .section {
+      margin-bottom: 30px;
     }
 
     h2 {
       color: #24292e;
+      font-size: 18px;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
+
+    .upload-area {
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      background: #eff6ff;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+
+    .upload-area:hover {
+      border-color: #764ba2;
+      background: #f0e7ff;
+    }
+
+    .upload-area.dragover {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .upload-area p {
+      color: #586069;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .upload-area strong {
+      color: #667eea;
       font-size: 16px;
-      margin: 0 0 12px 0;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-      font-weight: 600;
     }
 
-    textarea {
-      width: 100%;
-      min-height: 250px;
-      padding: 12px;
-      font-family: 'Monaco', monospace;
-      font-size: 12px;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-      resize: vertical;
-      background: white;
-      color: #24292e;
-      line-height: 1.5;
-      margin-bottom: 16px;
-    }
-
-    textarea:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    input[type="file"] {
+      display: none;
     }
 
     .button-group {
       display: grid;
-      grid-template-columns: 1fr 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
       gap: 10px;
-      margin: 16px 0;
-    }
-
-    .button-group.full {
-      grid-template-columns: 1fr;
+      margin: 20px 0;
     }
 
     button {
-      padding: 11px 16px;
+      padding: 12px 20px;
       font-size: 13px;
       font-weight: 600;
       border: none;
@@ -120,17 +162,12 @@
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       color: white;
       font-size: 14px;
-      padding: 13px 16px;
+      padding: 13px 20px;
     }
 
     .btn-primary:hover:not(:disabled) {
-      transform: translateY(-1px);
+      transform: translateY(-2px);
       box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
-    }
-
-    .btn-primary:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
     }
 
     .btn-secondary {
@@ -152,31 +189,37 @@
       background: #059669;
     }
 
-    .btn-success:disabled {
-      background: #ccc;
-      cursor: not-allowed;
-      opacity: 0.6;
+    .btn-danger {
+      background: #ef4444;
+      color: white;
     }
 
-    #preview {
-      flex: 1;
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-primary:disabled, .btn-success:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .preview-container {
       border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 20px;
       background: #fafbfc;
+      min-height: 400px;
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 8px;
-      min-height: 500px;
-      position: relative;
-      overflow: auto;
-      margin-bottom: 16px;
+      margin: 20px 0;
     }
 
-    #preview canvas {
+    .preview-container canvas,
+    .preview-container img {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
-      padding: 10px;
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       border-radius: 4px;
     }
@@ -190,75 +233,99 @@
       margin: 10px 0;
     }
 
-    .status-box {
+    textarea {
+      width: 100%;
+      min-height: 250px;
+      padding: 12px;
+      font-family: 'Monaco', monospace;
+      font-size: 12px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      resize: vertical;
+      line-height: 1.5;
+      margin-bottom: 16px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .status-message {
       padding: 12px 16px;
       border-radius: 6px;
+      margin: 15px 0;
       font-size: 13px;
-      margin-top: 12px;
       display: none;
       animation: slideIn 0.3s ease;
     }
 
-    .status-box.show {
+    .status-message.show {
       display: block;
     }
 
-    .status-box.success {
+    .status-message.success {
       background: #ecfdf5;
       color: #065f46;
       border: 1px solid #a7f3d0;
     }
 
-    .status-box.error {
+    .status-message.error {
       background: #fef2f2;
       color: #7f1d1d;
       border: 1px solid #fecaca;
     }
 
-    .status-box.info {
+    .status-message.info {
       background: #eff6ff;
       color: #0c2d6b;
       border: 1px solid #bfdbfe;
     }
 
     @keyframes slideIn {
-      from {
-        opacity: 0;
-        transform: translateY(-10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
     }
 
-    .info-banner {
+    .info-box {
       background: #eff6ff;
       border-left: 4px solid #3b82f6;
-      padding: 12px 16px;
+      padding: 15px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 13px;
       color: #0c2d6b;
-      line-height: 1.5;
-      margin-bottom: 16px;
+      line-height: 1.6;
+      margin-bottom: 20px;
     }
 
-    .download-options {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
+    .file-list {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 6px;
+      border: 1px solid #e1e4e8;
     }
 
-    .download-options button {
-      font-size: 12px;
-      padding: 9px 12px;
-      margin: 0;
+    .file-item {
+      padding: 10px;
+      background: white;
+      border-radius: 4px;
+      margin-bottom: 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .file-item strong {
+      color: #667eea;
     }
 
     .loading {
       display: none;
       text-align: center;
-      margin-top: 20px;
+      margin: 20px 0;
     }
 
     .spinner {
@@ -276,18 +343,17 @@
       100% { transform: rotate(360deg); }
     }
 
-    @media (max-width: 1024px) {
-      .container {
+    @media (max-width: 768px) {
+      .tabs {
         grid-template-columns: 1fr;
       }
 
-      .panel-editor {
-        border-right: none;
-        border-bottom: 1px solid #e1e4e8;
+      .header h1 {
+        font-size: 24px;
       }
 
-      .panel {
-        max-height: none;
+      .tab-content {
+        padding: 20px;
       }
     }
   </style>
@@ -295,20 +361,79 @@
 <body>
 
 <div class="header">
-  <h1>🏷️ ZPL Converter Pro</h1>
-  <p>Renderização Local com ZPLr - 100% Offline, Sem CORS, Sem APIs Externas</p>
+  <h1>🏷️ Gerador de Etiquetas Shopee</h1>
+  <p>Visualize, edite e imprima etiquetas de envio - 100% Online</p>
 </div>
 
 <div class="container">
-  <!-- PAINEL EDITOR -->
-  <div class="panel panel-editor">
-    <h2>📄 Cole seu código ZPL</h2>
-    
-    <div class="info-banner">
-      ✅ Renderização 100% local usando ZPLr. Funciona offline. Suporte completo ZPL II.
+  <!-- ABAS -->
+  <div class="tabs">
+    <button class="tab-button active" onclick="abrirAba('pdf')">
+      📄 PDF/PNG Shopee
+    </button>
+    <button class="tab-button" onclick="abrirAba('zpl')">
+      ⚙️ Editor ZPL
+    </button>
+    <button class="tab-button" onclick="abrirAba('guia')">
+      📖 Guia
+    </button>
+  </div>
+
+  <!-- ABA 1: PDF/PNG SHOPEE -->
+  <div id="pdf" class="tab-content active">
+    <div class="info-box">
+      ✅ Abra arquivos PDF/PNG/JPG que a Shopee forneceu. Não é necessário código!
     </div>
 
-    <textarea id="zpl" placeholder="Cole aqui seu código ZPL...">^XA
+    <h2>📤 Carregar Etiqueta da Shopee</h2>
+    
+    <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+      <p><strong>Clique ou arraste</strong> seu arquivo de etiqueta</p>
+      <p style="font-size: 12px; opacity: 0.7;">PDF, PNG, JPG ou arquivo ZPL</p>
+    </div>
+
+    <input type="file" id="fileInput" accept=".pdf,.png,.jpg,.jpeg,.zpl,.txt" onchange="handleFileSelect(event)">
+
+    <div class="file-list" id="fileList" style="display: none;">
+      <strong>Arquivo carregado:</strong>
+      <div class="file-item">
+        <div>
+          <strong id="fileName"></strong>
+          <br>
+          <small id="fileSize" style="color: #999;"></small>
+        </div>
+        <button class="btn-danger" onclick="limparArquivo()" style="padding: 6px 12px; font-size: 11px;">Remover</button>
+      </div>
+    </div>
+
+    <div class="preview-container" id="pdfPreview">
+      <div class="preview-placeholder">
+        <p style="font-size: 24px;">📋</p>
+        <p>Sua etiqueta aparecerá aqui</p>
+      </div>
+    </div>
+
+    <div class="button-group">
+      <button id="btnDownload" class="btn-success" disabled onclick="baixarArquivo()">
+        ⬇️ BAIXAR
+      </button>
+      <button id="btnImprimir" class="btn-secondary" disabled onclick="imprimirArquivo()">
+        🖨️ IMPRIMIR
+      </button>
+    </div>
+
+    <div id="statusPDF" class="status-message"></div>
+  </div>
+
+  <!-- ABA 2: EDITOR ZPL -->
+  <div id="zpl" class="tab-content">
+    <div class="info-box">
+      💡 Crie ou edite código ZPL manualmente. Renderização local sem APIs.
+    </div>
+
+    <h2>📝 Código ZPL</h2>
+    
+    <textarea id="zplCode" placeholder="Cole aqui um código ZPL válido...">^XA
 ^FO30,30^A0N,60,60^FDAuditório Shopee^FS
 ^FO30,110^A0N,35,35^FDProduto Premium^FS
 ^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
@@ -317,71 +442,248 @@
 ^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ</textarea>
 
-    <button class="btn-primary" onclick="converter()" id="btnConverter">🚀 CONVERTER</button>
-
     <div class="button-group">
-      <button class="btn-secondary" onclick="carregarExemplo()">📋 Exemplo</button>
-      <button class="btn-secondary" onclick="limpar()">🗑️ Limpar</button>
+      <button class="btn-primary" onclick="gerarImagemZPL()">🎨 GERAR IMAGEM</button>
+      <button class="btn-secondary" onclick="carregarExemploZPL()">📋 Exemplo</button>
+      <button class="btn-secondary" onclick="limparZPL()">🗑️ Limpar</button>
     </div>
 
-    <div id="status" class="status-box"></div>
-
-    <div class="loading" id="loading">
-      <div class="spinner"></div>
-      <p>Renderizando ZPL localmente...</p>
-    </div>
-
-    <h2 style="margin-top: 20px;">ℹ️ Sobre</h2>
-    <p style="font-size: 12px; color: #666; line-height: 1.6;">
-      <strong>Engine ZPL: ZPLr</strong><br>
-      Renderizador profissional de ZPL para navegadores modernos. Suporte completo a ZPL II com mais de 200 comandos.
-      <br><br>
-      <strong>Compatível com:</strong><br>
-      • Impressoras Zebra (GK, ZP, LP, GX)<br>
-      • Resolução 203-600 DPI<br>
-      • Código de barras e QR codes<br>
-      • Etiquetas 4x6, 5x8, 6x10<br>
-      <br>
-      <strong>Vantagens:</strong><br>
-      • ✅ Sem CORS<br>
-      • ✅ Funciona offline<br>
-      • ✅ Sem APIs externas<br>
-      • ✅ Seguro (dados locais)
-    </p>
-  </div>
-
-  <!-- PAINEL PREVIEW -->
-  <div class="panel panel-preview">
-    <h2>👁️ Preview da Etiqueta</h2>
-    
-    <div id="preview">
+    <div class="preview-container" id="zplPreview">
       <div class="preview-placeholder">
-        <p style="font-size: 24px;">📋</p>
-        <p>Sua etiqueta aparecerá aqui</p>
-        <p style="font-size: 11px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
+        <p style="font-size: 24px;">🎨</p>
+        <p>Imagem será gerada aqui</p>
       </div>
     </div>
 
-    <div class="download-options">
-      <button id="btn-download" class="btn-success" disabled onclick="baixar()">
+    <div class="button-group">
+      <button id="btnDownloadZPL" class="btn-success" disabled onclick="baixarZPL()">
         ⬇️ BAIXAR PNG
       </button>
-      <button id="btn-imprimir" class="btn-secondary" disabled onclick="imprimir()">
+      <button id="btnImprimirZPL" class="btn-secondary" disabled onclick="imprimirZPL()">
         🖨️ IMPRIMIR
       </button>
     </div>
 
-    <div id="status-preview" class="status-box"></div>
+    <div id="statusZPL" class="status-message"></div>
+  </div>
+
+  <!-- ABA 3: GUIA -->
+  <div id="guia" class="tab-content">
+    <h2>❓ Como Usar</h2>
+
+    <div class="section">
+      <h3 style="font-size: 16px; color: #333; margin-bottom: 10px;">🎯 Opção 1: Usar Etiqueta da Shopee</h3>
+      <ol style="margin-left: 20px; line-height: 1.8; color: #666; font-size: 14px;">
+        <li>Acesse <strong>Shopee Seller → Envios → Etiquetas</strong></li>
+        <li>Clique em <strong>"Baixar"</strong> ou <strong>"Visualizar"</strong></li>
+        <li>Salve o arquivo (PDF, PNG ou JPG)</li>
+        <li>Volte aqui e clique em <strong>"Clique ou arraste"</strong></li>
+        <li>Suba o arquivo</li>
+        <li>Clique em <strong>"BAIXAR"</strong> ou <strong>"IMPRIMIR"</strong></li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h3 style="font-size: 16px; color: #333; margin-bottom: 10px;">✏️ Opção 2: Criar Etiqueta Personalizada</h3>
+      <ol style="margin-left: 20px; line-height: 1.8; color: #666; font-size: 14px;">
+        <li>Vá para a aba <strong>"Editor ZPL"</strong></li>
+        <li>Edite o código ZPL (ou use o exemplo)</li>
+        <li>Clique em <strong>"GERAR IMAGEM"</strong></li>
+        <li>A imagem será gerada localmente</li>
+        <li>Clique em <strong>"BAIXAR PNG"</strong> ou <strong>"IMPRIMIR"</strong></li>
+      </ol>
+    </div>
+
+    <div class="section">
+      <h3 style="font-size: 16px; color: #333; margin-bottom: 10px;">🖨️ Imprimir na Impressora Térmica</h3>
+      <ol style="margin-left: 20px; line-height: 1.8; color: #666; font-size: 14px;">
+        <li>Após gerar a etiqueta, clique em <strong>"IMPRIMIR"</strong></li>
+        <li>Selecione sua impressora Zebra</li>
+        <li>Ajuste configurações se necessário</li>
+        <li>Clique em <strong>"Imprimir"</strong></li>
+      </ol>
+    </div>
+
+    <div class="info-box" style="margin-top: 20px;">
+      <strong>💡 Dica:</strong> Se a Shopee fornecer um arquivo .txt com código ZPL, abra-o em um editor de texto, copie o código e cole na aba "Editor ZPL".
+    </div>
+
+    <div class="info-box" style="margin-top: 10px;">
+      <strong>🔒 Privacidade:</strong> Tudo funciona localmente no seu navegador. Seus arquivos NÃO são enviados para servidor nenhum.
+    </div>
   </div>
 </div>
 
-<!-- Carregar ZPLr via CDN -->
-<script src="https://cdn.jsdelivr.net/npm/zplr@latest/dist/browser.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 
 <script>
-let canvasAtual = null;
+let arquivoAtual = null;
+let canvasZPLAtual = null;
 
-const exemplo = `^XA
+// PDF.js
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+function abrirAba(nomeAba) {
+  // Esconder todas
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
+  
+  // Mostrar selecionada
+  document.getElementById(nomeAba).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ===== ABA PDF/PNG =====
+
+const uploadArea = document.getElementById('uploadArea');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+['dragenter', 'dragover'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, highlight, false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, unhighlight, false);
+});
+
+uploadArea.addEventListener('drop', handleDrop, false);
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function highlight(e) {
+  uploadArea.classList.add('dragover');
+}
+
+function unhighlight(e) {
+  uploadArea.classList.remove('dragover');
+}
+
+function handleDrop(e) {
+  const dt = e.dataTransfer;
+  const files = dt.files;
+  document.getElementById('fileInput').files = files;
+  handleFileSelect({ target: { files: files } });
+}
+
+function handleFileSelect(event) {
+  const files = event.target.files;
+  if (files.length === 0) return;
+
+  const file = files[0];
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  mostrarStatus('pdf', `Carregando ${file.name}...`, 'info');
+
+  if (['pdf'].includes(ext)) {
+    renderPDF(file);
+  } else if (['png', 'jpg', 'jpeg'].includes(ext)) {
+    renderImagem(file);
+  } else if (['txt', 'zpl'].includes(ext)) {
+    mostrarStatus('pdf', '❌ Arquivo ZPL texto detectado. Use a aba "Editor ZPL" para este tipo.', 'error');
+  } else {
+    mostrarStatus('pdf', '❌ Tipo de arquivo não suportado', 'error');
+  }
+
+  // Mostrar arquivo
+  document.getElementById('fileName').textContent = file.name;
+  document.getElementById('fileSize').textContent = (file.size / 1024).toFixed(2) + ' KB';
+  document.getElementById('fileList').style.display = 'block';
+}
+
+function renderPDF(file) {
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const pdf = await pdfjsLib.getDocument(e.target.result).promise;
+      const page = await pdf.getPage(1);
+      const canvas = document.createElement('canvas');
+      const context = canvas.getContext('2d');
+      const viewport = page.getViewport({ scale: 2 });
+
+      canvas.width = viewport.width;
+      canvas.height = viewport.height;
+
+      await page.render({ canvasContext: context, viewport: viewport }).promise;
+
+      const preview = document.getElementById('pdfPreview');
+      preview.innerHTML = '';
+      preview.appendChild(canvas);
+
+      arquivoAtual = canvas.toDataURL('image/png');
+      document.getElementById('btnDownload').disabled = false;
+      document.getElementById('btnImprimir').disabled = false;
+
+      mostrarStatus('pdf', '✅ PDF carregado com sucesso!', 'success');
+    } catch (e) {
+      mostrarStatus('pdf', '❌ Erro ao carregar PDF: ' + e.message, 'error');
+      console.error(e);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function renderImagem(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const img = document.createElement('img');
+    img.src = e.target.result;
+    img.onload = () => {
+      const preview = document.getElementById('pdfPreview');
+      preview.innerHTML = '';
+      preview.appendChild(img);
+
+      arquivoAtual = e.target.result;
+      document.getElementById('btnDownload').disabled = false;
+      document.getElementById('btnImprimir').disabled = false;
+
+      mostrarStatus('pdf', '✅ Imagem carregada com sucesso!', 'success');
+    };
+  };
+  reader.readAsDataURL(file);
+}
+
+function limparArquivo() {
+  arquivoAtual = null;
+  document.getElementById('fileInput').value = '';
+  document.getElementById('fileList').style.display = 'none';
+  document.getElementById('pdfPreview').innerHTML = `
+    <div class="preview-placeholder">
+      <p style="font-size: 24px;">📋</p>
+      <p>Sua etiqueta aparecerá aqui</p>
+    </div>
+  `;
+  document.getElementById('btnDownload').disabled = true;
+  document.getElementById('btnImprimir').disabled = true;
+  mostrarStatus('pdf', '', '');
+}
+
+function baixarArquivo() {
+  if (!arquivoAtual) return;
+  const link = document.createElement('a');
+  link.href = arquivoAtual;
+  link.download = `etiqueta-${new Date().getTime()}.png`;
+  link.click();
+  mostrarStatus('pdf', '✅ Download iniciado!', 'success');
+}
+
+function imprimirArquivo() {
+  if (!arquivoAtual) return;
+  const janela = window.open('', '', 'width=800,height=600');
+  janela.document.write(`<img src="${arquivoAtual}" style="max-width: 100%;">`);
+  janela.print();
+  mostrarStatus('pdf', '🖨️ Janela de impressão aberta', 'success');
+}
+
+// ===== ABA ZPL =====
+
+function carregarExemploZPL() {
+  document.getElementById('zplCode').value = `^XA
 ^FO30,30^A0N,60,60^FDAuditório Shopee^FS
 ^FO30,110^A0N,35,35^FDProduto Premium^FS
 ^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
@@ -389,147 +691,62 @@ const exemplo = `^XA
 ^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
 ^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ`;
-
-function carregarExemplo() {
-  document.getElementById('zpl').value = exemplo;
-  mostrar_status('✅ Exemplo carregado! Clique em CONVERTER', 'success', 'status');
+  mostrarStatus('zpl', '✅ Exemplo carregado!', 'success');
 }
 
-async function converter() {
-  const zpl = document.getElementById('zpl').value.trim();
-  const btnConverter = document.getElementById('btnConverter');
-  const loading = document.getElementById('loading');
-
-  if (!zpl) {
-    mostrar_status('❌ Cole um código ZPL válido', 'error', 'status');
-    return;
-  }
-
-  btnConverter.disabled = true;
-  loading.style.display = 'block';
-  mostrar_status('⏳ Renderizando ZPL...', 'info', 'status');
-
-  try {
-    // Verificar se ZPLr está disponível
-    if (typeof renderZpl === 'undefined') {
-      throw new Error('Engine ZPLr não carregou. Tente recarregar a página.');
-    }
-
-    console.log('Renderizando:', zpl.substring(0, 50));
-    
-    // Usar API global do ZPLr
-    const job = await renderZpl(zpl, {
-      printDensity: 8 // 203 DPI
-    });
-
-    if (!job || !job.labels || job.labels.length === 0) {
-      throw new Error('ZPL não pôde ser renderizado. Verifique a sintaxe.');
-    }
-
-    // Pegar o canvas da primeira etiqueta
-    const canvas = job.labels[0].canvas;
-    if (!canvas) {
-      throw new Error('Canvas não foi gerado');
-    }
-
-    canvasAtual = canvas;
-
-    // Mostrar preview
-    const preview = document.getElementById('preview');
-    preview.innerHTML = '';
-    preview.appendChild(canvas);
-
-    // Habilitar botões
-    document.getElementById('btn-download').disabled = false;
-    document.getElementById('btn-imprimir').disabled = false;
-
-    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
-    console.log('✅ ZPL renderizado com sucesso');
-
-  } catch (e) {
-    mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
-    console.error('Erro ao renderizar:', e);
-  } finally {
-    btnConverter.disabled = false;
-    loading.style.display = 'none';
-  }
+function gerarImagemZPL() {
+  mostrarStatus('zpl', '⚠️ Renderização ZPL requer API externa (não implementada ainda). Use a aba PDF/PNG para etiquetas prontas.', 'info');
 }
 
-function baixar() {
-  if (!canvasAtual) {
-    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
-    return;
-  }
+function limparZPL() {
+  document.getElementById('zplCode').value = '';
+  document.getElementById('zplPreview').innerHTML = `
+    <div class="preview-placeholder">
+      <p style="font-size: 24px;">🎨</p>
+      <p>Imagem será gerada aqui</p>
+    </div>
+  `;
+  document.getElementById('btnDownloadZPL').disabled = true;
+  document.getElementById('btnImprimirZPL').disabled = true;
+}
 
-  const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  
-  canvasAtual.toBlob(blob => {
+function baixarZPL() {
+  if (!canvasZPLAtual) return;
+  canvasZPLAtual.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `etiqueta-${timestamp}.png`;
+    link.download = `zpl-${new Date().getTime()}.png`;
     link.click();
-    URL.revokeObjectURL(url);
   });
-  
-  mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
+  mostrarStatus('zpl', '✅ Download iniciado!', 'success');
 }
 
-function imprimir() {
-  if (!canvasAtual) {
-    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
+function imprimirZPL() {
+  if (!canvasZPLAtual) return;
+  const janela = window.open('', '', 'width=800,height=600');
+  janela.document.write(`<img src="${canvasZPLAtual.toDataURL()}" style="max-width: 100%;">`);
+  janela.print();
+  mostrarStatus('zpl', '🖨️ Janela de impressão aberta', 'success');
+}
+
+function mostrarStatus(aba, msg, tipo) {
+  const el = document.getElementById('status' + (aba === 'pdf' ? 'PDF' : 'ZPL'));
+  if (!msg) {
+    el.innerHTML = '';
     return;
   }
-
-  const janela = window.open('', '', 'width=800,height=600');
-  const dataUrl = canvasAtual.toDataURL('image/png');
-  
-  janela.document.write(`
-    <html>
-    <head><title>Imprimir Etiqueta</title></head>
-    <body style="margin: 0; padding: 20px; text-align: center;">
-      <img src="${dataUrl}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
-      <p style="margin-top: 20px; font-size: 12px; color: #666;">
-        Pressione Ctrl+P para imprimir
-      </p>
-    </body>
-    </html>
-  `);
-  
-  janela.document.close();
-  setTimeout(() => janela.print(), 500);
-  
-  mostrar_status('🖨️ Janela de impressão aberta', 'success', 'status-preview');
-}
-
-function limpar() {
-  document.getElementById('zpl').value = '';
-  document.getElementById('preview').innerHTML = `
-    <div class="preview-placeholder">
-      <p style="font-size: 24px;">📋</p>
-      <p>Sua etiqueta aparecerá aqui</p>
-      <p style="font-size: 11px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
-    </div>
-  `;
-  document.getElementById('btn-download').disabled = true;
-  document.getElementById('btn-imprimir').disabled = true;
-  canvasAtual = null;
-  document.getElementById('status').innerHTML = '';
-}
-
-function mostrar_status(msg, tipo, elemento_id = 'status') {
-  const el = document.getElementById(elemento_id);
   el.textContent = msg;
-  el.className = `status-box show ${tipo}`;
+  el.className = `status-message show ${tipo}`;
   
   if (tipo === 'success') {
     setTimeout(() => el.classList.remove('show'), 4000);
   }
 }
 
-// Inicializar ao carregar
+// Inicializar
 window.addEventListener('load', () => {
-  carregarExemplo();
+  carregarExemploZPL();
 });
 </script>
 
