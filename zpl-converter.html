@@ -455,56 +455,89 @@ async function converter() {
   mostrar_status('⏳ Enviando para Labelary API...', 'info', 'status');
 
   try {
-    // Construir URL da API Labelary
-    // Formato: GET http://api.labelary.com/v1/printers/{dpmm}/labels/{width}x{height}/{index}/{zpl}
-    
-    const encodedZpl = encodeURIComponent(zpl);
-    const url = `https://api.labelary.com/v1/printers/${dpmm}/labels/${tamanho}/0/?${encodedZpl}`;
+    // Usar proxy CORS para contornar restrição
+    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    const apiUrl = `https://api.labelary.com/v1/printers/${dpmm}/labels/${tamanho}/0/`;
 
-    console.log('URL da API:', url);
+    console.log('Enviando para:', apiUrl);
 
-    // Fazer requisição
-    const response = await fetch(url, {
+    // Fazer requisição POST com o ZPL no corpo
+    const response = await fetch(proxyUrl + apiUrl, {
       method: 'POST',
       headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-        'Accept': 'image/png'
+        'Content-Type': 'application/x-www-form-urlencoded'
       },
-      body: encodedZpl
+      body: zpl,
+      mode: 'cors'
     });
 
+    console.log('Status da resposta:', response.status);
+
     if (!response.ok) {
-      throw new Error(`Erro da API: ${response.status} ${response.statusText}`);
+      // Tentar sem proxy (pode funcionar dependendo do navegador)
+      console.log('Tentando sem proxy...');
+      
+      const response2 = await fetch(apiUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'text/plain',
+          'Accept': 'image/png'
+        },
+        body: zpl
+      });
+
+      if (!response2.ok) {
+        throw new Error(`Erro da API: ${response2.status}`);
+      }
+
+      const blob = await response2.blob();
+      processarResposta(blob);
+      return;
     }
 
     // Converter resposta para blob
     const blob = await response.blob();
-    urlAtual = URL.createObjectURL(blob);
-    imagemAtual = blob;
-
-    // Mostrar preview
-    const preview = document.getElementById('preview');
-    preview.innerHTML = '';
-    
-    const img = document.createElement('img');
-    img.src = urlAtual;
-    img.style.maxWidth = '100%';
-    img.style.maxHeight = '100%';
-    preview.appendChild(img);
-
-    // Habilitar botões
-    document.getElementById('btn-download').disabled = false;
-    document.getElementById('btn-imprimir').disabled = false;
-
-    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
+    processarResposta(blob);
 
   } catch (e) {
-    mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
-    console.error('Erro:', e);
+    console.error('Erro completo:', e);
+    mostrar_status('❌ Erro ao conectar com Labelary. Tente novamente ou use código ZPL simples.', 'error', 'status');
   } finally {
     btnConverter.disabled = false;
     loading.style.display = 'none';
   }
+}
+
+function processarResposta(blob) {
+  // Verificar se é realmente uma imagem
+  if (!blob.type.startsWith('image/')) {
+    console.error('Resposta não é uma imagem:', blob.type);
+    mostrar_status('❌ Resposta inválida da API. Verifique o código ZPL.', 'error', 'status');
+    return;
+  }
+
+  urlAtual = URL.createObjectURL(blob);
+  imagemAtual = blob;
+
+  // Mostrar preview
+  const preview = document.getElementById('preview');
+  preview.innerHTML = '';
+  
+  const img = document.createElement('img');
+  img.src = urlAtual;
+  img.style.maxWidth = '100%';
+  img.style.maxHeight = '100%';
+  img.onload = () => {
+    console.log('Imagem carregada com sucesso');
+    document.getElementById('btn-download').disabled = false;
+    document.getElementById('btn-imprimir').disabled = false;
+    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
+  };
+  img.onerror = () => {
+    console.error('Erro ao carregar imagem');
+    mostrar_status('❌ Erro ao processar a resposta', 'error', 'status');
+  };
+  preview.appendChild(img);
 }
 
 function baixar() {
