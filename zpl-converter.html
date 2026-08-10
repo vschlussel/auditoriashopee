@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter Pro - Gerador de Etiquetas</title>
+  <title>ZPL Converter Shopee - Gerador de Etiquetas Térmicas</title>
   <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
   <style>
@@ -14,7 +14,7 @@
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       padding: 20px;
       min-height: 100vh;
@@ -30,12 +30,6 @@
     .header h1 {
       font-size: 32px;
       margin-bottom: 5px;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
-    }
-
-    .header p {
-      font-size: 14px;
-      opacity: 0.9;
     }
 
     .container {
@@ -54,19 +48,17 @@
       padding: 30px;
       display: flex;
       flex-direction: column;
+      max-height: calc(100vh - 180px);
+      overflow-y: auto;
     }
 
     .panel-editor {
       background: #fafbfc;
       border-right: 1px solid #e1e4e8;
-      overflow-y: auto;
-      max-height: calc(100vh - 180px);
     }
 
     .panel-preview {
       background: #ffffff;
-      display: flex;
-      flex-direction: column;
     }
 
     h2 {
@@ -78,33 +70,19 @@
       font-weight: 600;
     }
 
-    .form-group {
-      margin-bottom: 16px;
-    }
-
-    label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #586069;
-      margin-bottom: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
     textarea {
       width: 100%;
-      min-height: 220px;
+      min-height: 200px;
       padding: 12px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: 'Monaco', monospace;
       font-size: 12px;
       border: 1px solid #e1e4e8;
       border-radius: 6px;
-      resize: none;
+      resize: vertical;
       background: white;
       color: #24292e;
-      line-height: 1.6;
-      transition: border-color 0.2s;
+      line-height: 1.5;
+      margin-bottom: 16px;
     }
 
     textarea:focus {
@@ -113,34 +91,11 @@
       box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
     }
 
-    select {
-      width: 100%;
-      padding: 10px 12px;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-      font-size: 13px;
-      background: white;
-      cursor: pointer;
-      transition: border-color 0.2s;
-    }
-
-    select:focus {
-      outline: none;
-      border-color: #667eea;
-      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-    }
-
-    .form-row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-    }
-
     .button-group {
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin: 20px 0;
+      margin: 16px 0;
     }
 
     .button-group.full {
@@ -157,11 +112,6 @@
       transition: all 0.2s;
       text-transform: uppercase;
       letter-spacing: 0.5px;
-      white-space: nowrap;
-    }
-
-    button:active {
-      transform: scale(0.98);
     }
 
     .btn-primary {
@@ -169,7 +119,6 @@
       color: white;
       font-size: 14px;
       padding: 13px 16px;
-      box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
     }
 
     .btn-primary:hover {
@@ -192,17 +141,14 @@
       color: white;
     }
 
-    .btn-success:hover {
+    .btn-success:hover:not(:disabled) {
       background: #059669;
     }
 
-    .btn-danger {
-      background: #ef4444;
-      color: white;
-    }
-
-    .btn-danger:hover {
-      background: #dc2626;
+    .btn-success:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+      opacity: 0.6;
     }
 
     #preview {
@@ -219,8 +165,7 @@
       margin-bottom: 16px;
     }
 
-    #preview canvas,
-    #preview img {
+    #preview canvas {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
@@ -232,18 +177,6 @@
     .preview-placeholder {
       text-align: center;
       color: #9ca3af;
-    }
-
-    .preview-placeholder svg {
-      width: 60px;
-      height: 60px;
-      margin-bottom: 15px;
-      opacity: 0.5;
-    }
-
-    .preview-placeholder p {
-      font-size: 14px;
-      line-height: 1.6;
     }
 
     .status-box {
@@ -303,36 +236,11 @@
       display: grid;
       grid-template-columns: 1fr 1fr;
       gap: 10px;
-      margin-top: 12px;
     }
 
     .download-options button {
       font-size: 12px;
       padding: 9px 12px;
-    }
-
-    .tab-buttons {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 8px;
-      margin-bottom: 16px;
-    }
-
-    .tab-button {
-      padding: 8px 12px;
-      font-size: 12px;
-      border: 1px solid #d1d5db;
-      background: white;
-      color: #374151;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-
-    .tab-button.active {
-      background: #667eea;
-      color: white;
-      border-color: #667eea;
     }
 
     @media (max-width: 1024px) {
@@ -343,132 +251,52 @@
       .panel-editor {
         border-right: none;
         border-bottom: 1px solid #e1e4e8;
-        max-height: none;
       }
-
-      .header h1 {
-        font-size: 24px;
-      }
-    }
-
-    .hidden {
-      display: none !important;
-    }
-
-    .dimensions-info {
-      background: #f3f4f6;
-      padding: 10px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      color: #6b7280;
-      margin-top: 8px;
-      border-left: 3px solid #9ca3af;
-    }
-
-    .loading-spinner {
-      display: inline-block;
-      width: 16px;
-      height: 16px;
-      border: 2px solid #f3f4f6;
-      border-top-color: #667eea;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-
-    @keyframes spin {
-      to { transform: rotate(360deg); }
     }
   </style>
 </head>
 <body>
 
 <div class="header">
-  <h1>📋 ZPL Converter Pro</h1>
-  <p>Conversor profissional de códigos ZPL para imagens de etiquetas</p>
+  <h1>🏷️ ZPL Converter Shopee Pro</h1>
+  <p>Gerador profissional de etiquetas térmicas para impressoras Zebra</p>
 </div>
 
 <div class="container">
   <!-- PAINEL EDITOR -->
   <div class="panel panel-editor">
-    <h2>🖊️ Código ZPL</h2>
+    <h2>📄 Cole seu código ZPL</h2>
     
-    <div class="tab-buttons">
-      <button class="tab-button active" onclick="abrir_aba('manual', this)">Manual</button>
-      <button class="tab-button" onclick="abrir_aba('exemplo', this)">Exemplo</button>
+    <div class="info-banner">
+      💡 Cole aqui o código ZPL da Shopee ou crie um personalizado
     </div>
 
-    <div id="aba-manual" class="form-group">
-      <textarea id="zpl" placeholder="Cole aqui seu código ZPL...
-Exemplo:
-^XA
-^FT10,40^A0N,30,30^FDTEXTO^FS
-^XZ"></textarea>
-    </div>
+    <textarea id="zpl" placeholder="Cole aqui o código ZPL..."></textarea>
 
-    <div id="aba-exemplo" class="hidden">
-      <div class="info-banner">
-        💡 Selecione um exemplo para carregá-lo no editor:
-      </div>
-      <div class="button-group full">
-        <button class="btn-secondary" onclick="carregar_exemplo('simples')">Exemplo Simples</button>
-        <button class="btn-secondary" onclick="carregar_exemplo('completo')">Exemplo Completo</button>
-      </div>
-    </div>
-
-    <h2 style="margin-top: 20px;">⚙️ Configurações</h2>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Resolução (DPI)</label>
-        <select id="dpi">
-          <option value="203">203 DPI (Padrão)</option>
-          <option value="300">300 DPI (Alta)</option>
-          <option value="600">600 DPI (Ultra)</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Formato de Saída</label>
-        <select id="formato">
-          <option value="png">PNG (Recomendado)</option>
-          <option value="jpeg">JPEG</option>
-          <option value="webp">WebP</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="form-row">
-      <div class="form-group">
-        <label>Largura (polegadas)</label>
-        <select id="largura">
-          <option value="4">4" (Padrão)</option>
-          <option value="6">6"</option>
-          <option value="8">8"</option>
-        </select>
-      </div>
-      <div class="form-group">
-        <label>Altura (polegadas)</label>
-        <select id="altura">
-          <option value="6">6" (Padrão)</option>
-          <option value="4">4"</option>
-          <option value="8">8"</option>
-        </select>
-      </div>
-    </div>
-
-    <div class="dimensions-info" id="dimensoes">
-      📏 Dimensões: 812 x 1218 pixels
-    </div>
-
-    <div class="button-group full" style="margin-top: 20px;">
+    <div class="button-group full" style="margin-top: 0;">
       <button class="btn-primary" onclick="converter()">🚀 CONVERTER</button>
     </div>
 
     <div class="button-group">
+      <button class="btn-secondary" onclick="carregarExemplo()">📋 Exemplo</button>
       <button class="btn-secondary" onclick="limpar()">🗑️ Limpar</button>
-      <button class="btn-secondary" onclick="copiar_codigo()">📋 Copiar</button>
     </div>
 
     <div id="status" class="status-box"></div>
+
+    <h2 style="margin-top: 20px;">⚙️ Informações</h2>
+    <p style="font-size: 12px; color: #666; line-height: 1.6;">
+      <strong>Compatível com:</strong><br>
+      • Impressoras Zebra GK/ZP/LP<br>
+      • Etiquetas 4x6, 5x8, 6x10<br>
+      • Resolução 203-600 DPI<br>
+      <br>
+      <strong>Formatos suportados:</strong><br>
+      • Texto e números<br>
+      • Código de barras (CODE128)<br>
+      • QR Code<br>
+      • Imagens e gráficos
+    </p>
   </div>
 
   <!-- PAINEL PREVIEW -->
@@ -477,11 +305,7 @@ Exemplo:
     
     <div id="preview">
       <div class="preview-placeholder">
-        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-          <line x1="9" y1="9" x2="15" y2="9"></line>
-          <line x1="9" y1="15" x2="15" y2="15"></line>
-        </svg>
+        <p style="font-size: 20px; margin-bottom: 10px;">📋</p>
         <p>Sua etiqueta aparecerá aqui</p>
         <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
       </div>
@@ -489,7 +313,7 @@ Exemplo:
 
     <div class="download-options">
       <button id="btn-download" class="btn-success" disabled onclick="baixar()">
-        ⬇️ BAIXAR
+        ⬇️ BAIXAR PNG
       </button>
       <button id="btn-imprimir" class="btn-secondary" disabled onclick="imprimir()">
         🖨️ IMPRIMIR
@@ -502,61 +326,135 @@ Exemplo:
 
 <script>
 let canvasAtual = null;
-let blobAtual = null;
 
-const exemplos = {
-  simples: `^XA
-^FT30,30^A0N,40,40^FDProduto Teste^FS
-^FT30,100^A0N,25,25^FDCódigo: 123456^FS
-^FT30,150^BC,80,Y,N,N
+const exemploSimples = `^XA
+^FT30,30^A0N,40,40^FDAuditório Shopee^FS
+^FT30,100^A0N,25,25^FDCódigo: 123456789^FS
+^FT30,160^BCN,80,Y,N,N,N
 ^FD123456789^FS
-^FT30,250^A0N,20,20^FDPreço: R$ 99,90^FS
-^XZ`,
+^FT30,260^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FT30,300^A0N,25,25^FDPreço: R$ 99,90^FS
+^FT30,340^A0N,20,20^FDValidade: 31/12/2025^FS
+^XZ`;
 
-  completo: `^XA
-^FT30,30^A0N,50,50^FDAuditório Shopee^FS
-^FT30,100^A0N,35,35^FDProduto Premium^FS
-^FT30,160^BC,90,Y,N,N
-^FD9876543210123^FS
-^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
-^FT30,320^A0N,25,25^FDPreço: R$ 259,90^FS
-^FT30,360^A0N,20,20^FDValidade: 31/12/2025^FS
-^FT30,400^A0N,20,20^FDLote: 202408001^FS
-^XZ`
-};
+function carregarExemplo() {
+  document.getElementById('zpl').value = exemploSimples;
+  mostrar_status('✅ Exemplo carregado!', 'success', 'status');
+}
 
-function abrir_aba(aba, botao) {
-  document.querySelectorAll('[id^="aba-"]').forEach(el => el.classList.add('hidden'));
-  document.getElementById('aba-' + aba).classList.remove('hidden');
+function desenhar_zpl(ctx, zpl, largura, altura) {
+  console.log('Iniciando parse ZPL...');
   
-  document.querySelectorAll('.tab-button').forEach(el => el.classList.remove('active'));
-  if (botao) {
-    botao.classList.add('active');
+  let posX = 0, posY = 0;
+  let tamanhoFonte = 14;
+  let fontePadrao = 'Arial';
+  let proximoTipo = null;
+  let linhasDesenhadas = 0;
+  
+  // Detectar gráficos complexos
+  let temGrafico = zpl.includes('~DG') || zpl.includes('^XG') || zpl.includes('^GD');
+  
+  if (temGrafico) {
+    console.warn('⚠️ Etiqueta contém gráficos binárias (Shopee)');
+    // Remover referências a gráficos
+    zpl = zpl.replace(/~DG[^~]*/g, '').replace(/\^XG[^^\n]*/g, '').replace(/:[A-Z0-9]+\.[A-Z]+[^^\n]*/g, '');
   }
-}
-
-function carregar_exemplo(tipo) {
-  document.getElementById('zpl').value = exemplos[tipo];
-  const botaoManual = document.querySelector('.tab-button:first-child');
-  abrir_aba('manual', botaoManual);
-  mostrar_status('✅ Exemplo carregado! Clique em CONVERTER', 'success', 'status');
-}
-
-function atualizar_dimensoes() {
-  const dpi = parseInt(document.getElementById('dpi').value);
-  const largura = parseInt(document.getElementById('largura').value);
-  const altura = parseInt(document.getElementById('altura').value);
   
-  const pixels_largura = Math.round(largura * dpi);
-  const pixels_altura = Math.round(altura * dpi);
+  const comandoRegex = /\^([A-Z]{2})([A-Z])?([^^\n]*)/g;
+  let match;
   
-  document.getElementById('dimensoes').textContent = 
-    `📏 Dimensões: ${pixels_largura} x ${pixels_altura} pixels @ ${dpi} DPI`;
+  while ((match = comandoRegex.exec(zpl)) !== null) {
+    const comando = match[1];
+    const parametros = match[3];
+    
+    // ^FT - Posição
+    if (comando === 'FT') {
+      const partes = parametros.split(',');
+      posX = parseInt(partes[0]) || 0;
+      posY = parseInt(partes[1]) || 0;
+    }
+    
+    // ^A0 / ^A@ - Fonte
+    else if (comando === 'A0' || comando === 'A@' || comando === 'A8') {
+      const partes = parametros.split(',');
+      tamanhoFonte = Math.max(10, parseInt(partes[1]) || 14);
+    }
+    
+    // ^BC / ^B1 - Código de barras
+    else if (comando === 'BC' || comando === 'B1' || comando === 'BU') {
+      proximoTipo = 'barcode';
+    }
+    
+    // ^BQ - QR Code
+    else if (comando === 'BQ' || comando === 'BZ') {
+      proximoTipo = 'qrcode';
+    }
+    
+    // ^FD - Dados
+    else if (comando === 'FD') {
+      const texto = parametros.replace(/FS.*$/, '').trim();
+      
+      if (!texto) continue;
+      
+      if (proximoTipo === 'barcode') {
+        try {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = 400;
+          tempCanvas.height = 100;
+          JsBarcode(tempCanvas, texto, {
+            format: 'CODE128',
+            width: 2,
+            height: 80,
+            displayValue: false,
+            margin: 0
+          });
+          ctx.drawImage(tempCanvas, posX, posY);
+          linhasDesenhadas++;
+          console.log(`✓ Barcode: ${texto}`);
+        } catch(e) {
+          console.error('Erro barcode:', e);
+        }
+        proximoTipo = null;
+      }
+      else if (proximoTipo === 'qrcode') {
+        try {
+          const tempCanvas = document.createElement('canvas');
+          tempCanvas.width = 150;
+          tempCanvas.height = 150;
+          QRCode.toCanvas(tempCanvas, texto, { width: 150, margin: 0 }, function(error) {
+            if (!error) {
+              ctx.drawImage(tempCanvas, posX, posY);
+              linhasDesenhadas++;
+            }
+          });
+        } catch(e) {
+          console.error('Erro QR:', e);
+        }
+        proximoTipo = null;
+      }
+      else {
+        ctx.fillStyle = '#000000';
+        ctx.font = `${tamanhoFonte}px ${fontePadrao}`;
+        ctx.textBaseline = 'top';
+        
+        try {
+          ctx.fillText(texto, posX, posY);
+          linhasDesenhadas++;
+          console.log(`✓ Texto: ${texto}`);
+        } catch(e) {
+          console.error('Erro texto:', e);
+        }
+      }
+    }
+  }
+  
+  console.log(`✅ Renderizados ${linhasDesenhadas} elementos`);
+  if (temGrafico) {
+    console.warn('⚠️ Gráficos binárias não renderizados (renderização de texto apenas)');
+  }
+  
+  return linhasDesenhadas > 0;
 }
-
-document.getElementById('dpi').addEventListener('change', atualizar_dimensoes);
-document.getElementById('largura').addEventListener('change', atualizar_dimensoes);
-document.getElementById('altura').addEventListener('change', atualizar_dimensoes);
 
 async function converter() {
   const zpl = document.getElementById('zpl').value.trim();
@@ -565,33 +463,28 @@ async function converter() {
     return;
   }
 
-  const dpi = parseInt(document.getElementById('dpi').value);
-  const largura = parseInt(document.getElementById('largura').value);
-  const altura = parseInt(document.getElementById('altura').value);
-
-  mostrar_status('⏳ Processando...', 'info', 'status');
+  mostrar_status('⏳ Processando etiqueta...', 'info', 'status');
 
   try {
-    await new Promise(r => setTimeout(r, 300));
-
-    const pixels_largura = Math.round(largura * dpi);
-    const pixels_altura = Math.round(altura * dpi);
+    // Dimensões padrão 4x6 polegadas @ 203 DPI
+    const pixels_largura = 812;   // 4 polegadas
+    const pixels_altura = 1218;   // 6 polegadas
 
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
     canvas.width = pixels_largura;
     canvas.height = pixels_altura;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) throw new Error('Não foi possível criar contexto 2D');
 
     // Fundo branco
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    // Parsear e desenhar ZPL
-    desenhar_zpl(ctx, zpl, pixels_largura, pixels_altura);
+    // Desenhar etiqueta
+    const sucesso = desenhar_zpl(ctx, zpl, pixels_largura, pixels_altura);
 
     canvasAtual = canvas;
-    blobAtual = null;
 
     // Mostrar preview
     const preview = document.getElementById('preview');
@@ -606,7 +499,11 @@ async function converter() {
     document.getElementById('btn-download').disabled = false;
     document.getElementById('btn-imprimir').disabled = false;
 
-    mostrar_status(`✅ Etiqueta gerada! (${pixels_largura}x${pixels_altura}px)`, 'success', 'status');
+    let msg = '✅ Etiqueta gerada com sucesso!';
+    if (zpl.includes('~DG') || zpl.includes('^XG')) {
+      msg += ' (⚠️ Gráficos binárias não renderizados)';
+    }
+    mostrar_status(msg, 'success', 'status');
 
   } catch (e) {
     mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
@@ -614,161 +511,22 @@ async function converter() {
   }
 }
 
-function desenhar_zpl(ctx, zpl, largura, altura) {
-  let posX = 0, posY = 0;
-  let tamanhoFonte = 14;
-  let fontePadrao = 'Arial';
-  let alturaLinha = 20;
-  let proximoTexto = null;
-
-  // Remover espaços em branco extras e dividir por linhas
-  const linhas = zpl.split(/\n|\^/).filter(l => l.trim());
-
-  console.log('Linhas ZPL:', linhas);
-
-  for (let i = 0; i < linhas.length; i++) {
-    let linha = linhas[i].trim();
-    if (!linha) continue;
-
-    // Posicionamento ^FT
-    if (linha.startsWith('FT')) {
-      const m = linha.match(/FT(\d+),(\d+)/);
-      if (m) {
-        posX = parseInt(m[1]);
-        posY = parseInt(m[2]);
-        console.log(`FT: posX=${posX}, posY=${posY}`);
-      }
-    }
-    
-    // Fonte ^A0 (built-in) ou ^A@ (scalable)
-    else if (linha.startsWith('A0') || linha.startsWith('A@')) {
-      const m = linha.match(/A[0@]([A-Z])??,(\d+),(\d+)/);
-      if (m) {
-        tamanhoFonte = Math.max(10, parseInt(m[2]));
-        console.log(`Font: tamanho=${tamanhoFonte}`);
-      }
-    }
-
-    // Código de barras 128 ^BC
-    else if (linha.startsWith('BC')) {
-      const m = linha.match(/BC[A-Z]?,(\d+),([YN]),([YN])/);
-      if (m) {
-        alturaLinha = parseInt(m[1]);
-        // Próximo FD contém o código
-        proximoTexto = 'barcode';
-        console.log(`Barcode: altura=${alturaLinha}`);
-      }
-    }
-
-    // Código de barras UPCA ^BU
-    else if (linha.startsWith('BU')) {
-      proximoTexto = 'barcode';
-    }
-
-    // QR Code ^BQ
-    else if (linha.startsWith('BQ')) {
-      proximoTexto = 'qrcode';
-      console.log('QR Code detectado');
-    }
-
-    // Campo de dados ^FD
-    else if (linha.startsWith('FD')) {
-      const m = linha.match(/FD(.+?)(?:FS|$)/);
-      if (m) {
-        let texto = m[1].trim();
-        
-        if (proximoTexto === 'barcode') {
-          console.log(`Gerando barcode: ${texto}`);
-          try {
-            const canvas_temp = document.createElement('canvas');
-            canvas_temp.width = 300;
-            canvas_temp.height = Math.max(alturaLinha, 80);
-            JsBarcode(canvas_temp, texto, {
-              format: 'CODE128',
-              width: 2,
-              height: Math.max(alturaLinha, 60),
-              displayValue: false,
-              margin: 0
-            });
-            ctx.drawImage(canvas_temp, posX, posY - alturaLinha);
-            console.log(`Barcode desenhado em ${posX}, ${posY}`);
-          } catch (e) {
-            console.error('Erro barcode:', e);
-          }
-          proximoTexto = null;
-        }
-        else if (proximoTexto === 'qrcode') {
-          console.log(`Gerando QR code: ${texto}`);
-          try {
-            const canvas_temp = document.createElement('canvas');
-            QRCode.toCanvas(canvas_temp, texto, { 
-              width: 150, 
-              margin: 0,
-              errorCorrectionLevel: 'M'
-            }, function(error) {
-              if (!error) {
-                ctx.drawImage(canvas_temp, posX, posY);
-                console.log(`QR code desenhado em ${posX}, ${posY}`);
-              }
-            });
-          } catch (e) {
-            console.error('Erro QR:', e);
-          }
-          proximoTexto = null;
-        }
-        else {
-          // Texto normal
-          ctx.fillStyle = '#000000';
-          ctx.font = `bold ${tamanhoFonte}px ${fontePadrao}`;
-          ctx.textBaseline = 'top';
-          ctx.fillText(texto, posX, posY);
-          console.log(`Texto "${texto}" em ${posX}, ${posY}, tamanho=${tamanhoFonte}`);
-        }
-      }
-    }
-
-    // Fim do campo ^FS
-    else if (linha.startsWith('FS')) {
-      // Já processado acima
-    }
-
-    // Linhas e boxes
-    else if (linha.startsWith('GB')) {
-      const m = linha.match(/GB(\d+),(\d+),(\d+)/);
-      if (m) {
-        const larg = parseInt(m[1]);
-        const alt = parseInt(m[2]);
-        const borda = parseInt(m[3]);
-        ctx.strokeStyle = '#000000';
-        ctx.lineWidth = borda;
-        ctx.strokeRect(posX, posY, larg, alt);
-      }
-    }
-  }
-
-  console.log('ZPL renderizado com sucesso');
-}
-
-async function baixar() {
+function baixar() {
   if (!canvasAtual) {
-    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status');
+    mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
     return;
   }
 
-  const formato = document.getElementById('formato').value;
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  const tipo_mime = `image/${formato === 'jpeg' ? 'jpeg' : formato}`;
-
   canvasAtual.toBlob(blob => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `etiqueta-${timestamp}.${formato}`;
+    link.download = `etiqueta-shopee-${timestamp}.png`;
     link.click();
     URL.revokeObjectURL(url);
-    
     mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
-  }, tipo_mime, 0.95);
+  }, 'image/png');
 }
 
 function imprimir() {
@@ -777,16 +535,16 @@ function imprimir() {
     return;
   }
 
-  const janela = window.open('', '', 'width=800,height=600');
+  const janela = window.open('', '', 'width=600,height=800');
   const img = canvasAtual.toDataURL('image/png');
   
   janela.document.write(`
     <html>
     <head><title>Imprimir Etiqueta</title></head>
     <body style="margin: 0; padding: 20px; text-align: center;">
-      <img src="${img}" style="max-width: 100%; max-height: 100%;">
-      <p style="margin-top: 20px; font-size: 12px; color: #999;">
-        Pressione Ctrl+P ou Cmd+P para imprimir
+      <img src="${img}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
+      <p style="margin-top: 20px; font-size: 12px; color: #666;">
+        Pressione Ctrl+P para imprimir
       </p>
     </body>
     </html>
@@ -798,22 +556,11 @@ function imprimir() {
   mostrar_status('🖨️ Janela de impressão aberta', 'success', 'status-preview');
 }
 
-function copiar_codigo() {
-  const texto = document.getElementById('zpl').value;
-  navigator.clipboard.writeText(texto).then(() => {
-    mostrar_status('✅ Código copiado!', 'success', 'status');
-  });
-}
-
 function limpar() {
   document.getElementById('zpl').value = '';
   document.getElementById('preview').innerHTML = `
     <div class="preview-placeholder">
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
-        <line x1="9" y1="9" x2="15" y2="9"></line>
-        <line x1="9" y1="15" x2="15" y2="15"></line>
-      </svg>
+      <p style="font-size: 20px; margin-bottom: 10px;">📋</p>
       <p>Sua etiqueta aparecerá aqui</p>
       <p style="font-size: 12px; opacity: 0.7; margin-top: 8px;">Cole um código ZPL e clique em CONVERTER</p>
     </div>
@@ -821,9 +568,7 @@ function limpar() {
   document.getElementById('btn-download').disabled = true;
   document.getElementById('btn-imprimir').disabled = true;
   canvasAtual = null;
-  blobAtual = null;
-  document.getElementById('status').classList.remove('show');
-  document.getElementById('status-preview').classList.remove('show');
+  document.getElementById('status').innerHTML = '';
 }
 
 function mostrar_status(msg, tipo, elemento_id = 'status') {
@@ -837,8 +582,10 @@ function mostrar_status(msg, tipo, elemento_id = 'status') {
 }
 
 // Inicializar
-atualizar_dimensoes();
-carregar_exemplo('simples');
+window.addEventListener('load', () => {
+  carregarExemplo();
+  limpar();
+});
 </script>
 
 </body>
