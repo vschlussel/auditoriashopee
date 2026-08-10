@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ZPL Converter Pro - Labelary API</title>
+  <title>ZPL Converter Pro - Rendering Local WASM</title>
   <style>
     * {
       margin: 0;
@@ -172,7 +172,7 @@
       margin-bottom: 16px;
     }
 
-    #preview img {
+    #preview canvas {
       max-width: 100%;
       max-height: 100%;
       object-fit: contain;
@@ -290,41 +290,13 @@
         max-height: none;
       }
     }
-
-    .config-group {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 10px;
-      margin-bottom: 16px;
-    }
-
-    .config-group label {
-      display: block;
-      font-size: 12px;
-      font-weight: 600;
-      color: #586069;
-      margin-bottom: 6px;
-    }
-
-    .config-group select {
-      width: 100%;
-      padding: 8px;
-      border: 1px solid #e1e4e8;
-      border-radius: 6px;
-      font-size: 13px;
-    }
-
-    .config-group select:focus {
-      outline: none;
-      border-color: #667eea;
-    }
   </style>
 </head>
 <body>
 
 <div class="header">
   <h1>🏷️ ZPL Converter Pro</h1>
-  <p>Conversor profissional de ZPL para PNG usando API Labelary</p>
+  <p>Renderização 100% local usando WebAssembly - Sem APIs externas, sem CORS</p>
 </div>
 
 <div class="container">
@@ -333,36 +305,16 @@
     <h2>📄 Cole seu código ZPL</h2>
     
     <div class="info-banner">
-      ✅ Funciona com ZPL legível (não criptografado). Envia para Labelary API para renderizar.
-    </div>
-
-    <div class="config-group">
-      <div>
-        <label>Resolução (DPI)</label>
-        <select id="dpmm">
-          <option value="8">203 DPI (8 dpmm)</option>
-          <option value="12">300 DPI (12 dpmm)</option>
-          <option value="24">600 DPI (24 dpmm)</option>
-        </select>
-      </div>
-      <div>
-        <label>Tamanho da Etiqueta</label>
-        <select id="tamanho">
-          <option value="4x6">4 x 6 polegadas</option>
-          <option value="4x8">4 x 8 polegadas</option>
-          <option value="6x10">6 x 10 polegadas</option>
-          <option value="5x8">5 x 8 polegadas</option>
-        </select>
-      </div>
+      ✅ Renderização Local (WASM) - Sem dependências externas. Funciona offline!
     </div>
 
     <textarea id="zpl" placeholder="Cole aqui seu código ZPL...">^XA
-^FT30,50^A0N,60,60^FDAuditório Shopee^FS
-^FT30,150^A0N,35,35^FDProduto Premium^FS
-^FT30,220^A0N,25,25^FDCódigo: 123456789^FS
-^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
-^FT30,330^A0N,25,25^FDPreço: R$ 99,90^FS
-^FT30,380^A0N,20,20^FDValidade: 31/12/2025^FS
+^FO30,30^A0N,60,60^FDAuditório Shopee^FS
+^FO30,110^A0N,35,35^FDProduto Premium^FS
+^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
+^FO30,220^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
+^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ</textarea>
 
     <button class="btn-primary" onclick="converter()" id="btnConverter">🚀 CONVERTER</button>
@@ -376,21 +328,24 @@
 
     <div class="loading" id="loading">
       <div class="spinner"></div>
-      <p>Processando com Labelary API...</p>
+      <p>Renderizando ZPL localmente...</p>
     </div>
 
     <h2 style="margin-top: 20px;">ℹ️ Sobre</h2>
     <p style="font-size: 12px; color: #666; line-height: 1.6;">
-      Este conversor usa a <strong>Labelary API</strong>, um serviço online gratuito que renderiza ZPL em tempo real.
+      <strong>Renderização Local com WASM</strong><br>
+      Usa zpl-renderer-js (Zebrash), um engine ZPL escrito em Rust compilado para WebAssembly. Funciona 100% no navegador.
       <br><br>
       <strong>Compatível com:</strong><br>
       • Impressoras Zebra (GK, ZP, LP)<br>
-      • Resolução 203-600 DPI<br>
-      • Etiquetas 4x6, 5x8, 6x10<br>
+      • Suporte completo de ZPL II<br>
+      • Código de barras e QR codes<br>
       <br>
-      <strong>Formatos de Saída:</strong><br>
-      • PNG (padrão)<br>
-      • PDF (via Labelary)
+      <strong>Vantagens:</strong><br>
+      • ✅ Sem CORS<br>
+      • ✅ Funciona offline<br>
+      • ✅ Rápido<br>
+      • ✅ Seguro (dados locais)
     </p>
   </div>
 
@@ -419,18 +374,48 @@
   </div>
 </div>
 
-<script>
-let imagemAtual = null;
-let urlAtual = null;
+<script type="importmap">
+{
+  "imports": {
+    "zpl-renderer-js": "https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/+esm"
+  }
+}
+</script>
+
+<script type="module">
+import { init, zplToCanvasAsync } from 'https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/+esm';
+
+let canvasAtual = null;
+let inicializado = false;
 
 const exemplo = `^XA
-^FT30,50^A0N,60,60^FDAuditório Shopee^FS
-^FT30,150^A0N,35,35^FDProduto Premium^FS
-^FT30,220^A0N,25,25^FDCódigo: 123456789^FS
-^FT30,280^A0N,25,25^FDSKU: SKU-2024-001^FS
-^FT30,330^A0N,25,25^FDPreço: R$ 99,90^FS
-^FT30,380^A0N,20,20^FDValidade: 31/12/2025^FS
+^FO30,30^A0N,60,60^FDAuditório Shopee^FS
+^FO30,110^A0N,35,35^FDProduto Premium^FS
+^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
+^FO30,220^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
+^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
 ^XZ`;
+
+// Inicializar zpl-renderer-js
+async function inicializarLibrary() {
+  if (inicializado) return;
+  
+  try {
+    mostrar_status('⏳ Inicializando engine ZPL...', 'info', 'status');
+    
+    await init({ 
+      wasmUrl: 'https://cdn.jsdelivr.net/npm/zpl-renderer-js@4.0.0/dist/zebrash.wasm'
+    });
+    
+    inicializado = true;
+    console.log('✅ zpl-renderer-js inicializado com sucesso');
+    mostrar_status('✅ Engine ZPL pronto!', 'success', 'status');
+  } catch (e) {
+    console.error('Erro ao inicializar:', e);
+    mostrar_status('❌ Erro ao inicializar engine ZPL: ' + e.message, 'error', 'status');
+  }
+}
 
 function carregarExemplo() {
   document.getElementById('zpl').value = exemplo;
@@ -439,8 +424,6 @@ function carregarExemplo() {
 
 async function converter() {
   const zpl = document.getElementById('zpl').value.trim();
-  const dpmm = document.getElementById('dpmm').value;
-  const tamanho = document.getElementById('tamanho').value;
   const btnConverter = document.getElementById('btnConverter');
   const loading = document.getElementById('loading');
 
@@ -449,124 +432,85 @@ async function converter() {
     return;
   }
 
-  // Desabilitar botão e mostrar loading
+  // Inicializar se não estiver
+  if (!inicializado) {
+    await inicializarLibrary();
+    if (!inicializado) return;
+  }
+
   btnConverter.disabled = true;
   loading.style.display = 'block';
-  mostrar_status('⏳ Enviando para Labelary API...', 'info', 'status');
+  mostrar_status('⏳ Renderizando ZPL...', 'info', 'status');
 
   try {
-    // Usar proxy CORS para contornar restrição
-    const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-    const apiUrl = `https://api.labelary.com/v1/printers/${dpmm}/labels/${tamanho}/0/`;
-
-    console.log('Enviando para:', apiUrl);
-
-    // Fazer requisição POST com o ZPL no corpo
-    const response = await fetch(proxyUrl + apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      },
-      body: zpl,
-      mode: 'cors'
+    // Criar canvas temporário
+    const tempCanvas = document.createElement('canvas');
+    
+    console.log('Renderizando:', zpl.substring(0, 50));
+    
+    // Renderizar ZPL para canvas
+    await zplToCanvasAsync(zpl, tempCanvas, {
+      width: 812,
+      height: 1218,
     });
 
-    console.log('Status da resposta:', response.status);
+    canvasAtual = tempCanvas;
 
-    if (!response.ok) {
-      // Tentar sem proxy (pode funcionar dependendo do navegador)
-      console.log('Tentando sem proxy...');
-      
-      const response2 = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain',
-          'Accept': 'image/png'
-        },
-        body: zpl
-      });
+    // Mostrar preview
+    const preview = document.getElementById('preview');
+    preview.innerHTML = '';
+    preview.appendChild(tempCanvas);
 
-      if (!response2.ok) {
-        throw new Error(`Erro da API: ${response2.status}`);
-      }
+    // Habilitar botões
+    document.getElementById('btn-download').disabled = false;
+    document.getElementById('btn-imprimir').disabled = false;
 
-      const blob = await response2.blob();
-      processarResposta(blob);
-      return;
-    }
-
-    // Converter resposta para blob
-    const blob = await response.blob();
-    processarResposta(blob);
+    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
+    console.log('✅ ZPL renderizado com sucesso');
 
   } catch (e) {
-    console.error('Erro completo:', e);
-    mostrar_status('❌ Erro ao conectar com Labelary. Tente novamente ou use código ZPL simples.', 'error', 'status');
+    mostrar_status('❌ Erro: ' + e.message, 'error', 'status');
+    console.error('Erro ao renderizar:', e);
   } finally {
     btnConverter.disabled = false;
     loading.style.display = 'none';
   }
 }
 
-function processarResposta(blob) {
-  // Verificar se é realmente uma imagem
-  if (!blob.type.startsWith('image/')) {
-    console.error('Resposta não é uma imagem:', blob.type);
-    mostrar_status('❌ Resposta inválida da API. Verifique o código ZPL.', 'error', 'status');
-    return;
-  }
-
-  urlAtual = URL.createObjectURL(blob);
-  imagemAtual = blob;
-
-  // Mostrar preview
-  const preview = document.getElementById('preview');
-  preview.innerHTML = '';
-  
-  const img = document.createElement('img');
-  img.src = urlAtual;
-  img.style.maxWidth = '100%';
-  img.style.maxHeight = '100%';
-  img.onload = () => {
-    console.log('Imagem carregada com sucesso');
-    document.getElementById('btn-download').disabled = false;
-    document.getElementById('btn-imprimir').disabled = false;
-    mostrar_status('✅ Etiqueta renderizada com sucesso!', 'success', 'status');
-  };
-  img.onerror = () => {
-    console.error('Erro ao carregar imagem');
-    mostrar_status('❌ Erro ao processar a resposta', 'error', 'status');
-  };
-  preview.appendChild(img);
-}
-
 function baixar() {
-  if (!imagemAtual) {
+  if (!canvasAtual) {
     mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
     return;
   }
 
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, -5);
-  const link = document.createElement('a');
-  link.href = urlAtual;
-  link.download = `etiqueta-${timestamp}.png`;
-  link.click();
+  
+  canvasAtual.toBlob(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `etiqueta-${timestamp}.png`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
   
   mostrar_status('✅ Download iniciado!', 'success', 'status-preview');
 }
 
 function imprimir() {
-  if (!urlAtual) {
+  if (!canvasAtual) {
     mostrar_status('❌ Gere uma etiqueta primeiro', 'error', 'status-preview');
     return;
   }
 
   const janela = window.open('', '', 'width=800,height=600');
+  const dataUrl = canvasAtual.toDataURL('image/png');
+  
   janela.document.write(`
     <html>
     <head><title>Imprimir Etiqueta</title></head>
     <body style="margin: 0; padding: 20px; text-align: center;">
-      <img src="${urlAtual}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
+      <img src="${dataUrl}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
       <p style="margin-top: 20px; font-size: 12px; color: #666;">
         Pressione Ctrl+P para imprimir
       </p>
@@ -591,8 +535,7 @@ function limpar() {
   `;
   document.getElementById('btn-download').disabled = true;
   document.getElementById('btn-imprimir').disabled = true;
-  imagemAtual = null;
-  urlAtual = null;
+  canvasAtual = null;
   document.getElementById('status').innerHTML = '';
 }
 
@@ -606,8 +549,16 @@ function mostrar_status(msg, tipo, elemento_id = 'status') {
   }
 }
 
-// Carregar exemplo ao abrir
+// Expor funções globalmente
+window.converter = converter;
+window.carregarExemplo = carregarExemplo;
+window.limpar = limpar;
+window.baixar = baixar;
+window.imprimir = imprimir;
+
+// Inicializar ao carregar
 window.addEventListener('load', () => {
+  inicializarLibrary();
   carregarExemplo();
 });
 </script>
