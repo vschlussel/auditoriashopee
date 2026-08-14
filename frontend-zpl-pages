@@ -530,7 +530,7 @@
 
 <script>
 // Configurar API backend
-const BACKEND_URL = 'https://seu-projeto.vercel.app'; // Substituir com seu URL Vercel
+const BACKEND_URL = 'https://auditorioshopee-zpl-vercel.vercel.app/backend-zpl-vercel';
 
 let arquivoAtual = null;
 let imagemAtual = null;
