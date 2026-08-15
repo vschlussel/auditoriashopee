@@ -4,7 +4,7 @@ import formData from 'form-data';
 import fs from 'fs';
 import path from 'path';
 
-const LABELIZE_API = process.env.LABELIZE_API || 'http://localhost:8000';
+const LABELIZE_API = 'https://api.labelize.com';
 
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
