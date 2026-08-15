@@ -1,140 +1,542 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Auditoria.Shopee · Dashboard</title>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<style>
-:root{
-  --ink: #14110F;
-  --paper: #FBF8F3;
-  --paper-2: #F1EBE0;
-  --line: #DCD3C2;
-  --moss: #3F5B43;
-  --moss-deep: #243828;
-  --rust: #C2552F;
-  --rust-deep: #963F22;
-  --gold: #B6862C;
-  --red-flag: #A3331F;
-  --green-flag: #2F6B47;
-  --mono: 'IBM Plex Mono', 'SF Mono', Menlo, monospace;
-  --serif: 'Source Serif Pro', Georgia, serif;
-  --sans: 'Inter', -apple-system, sans-serif;
-}
-@import url('https://fonts.googleapis.com/css2?family=Source+Serif+Pro:ital,wght@0,400;0,600;0,700;1,400&family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🏷️ Conversor ZPL - Etiquetas Shopee</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-*{box-sizing:border-box; margin:0; padding:0;}
-html{scroll-behavior:smooth;}
-html,body{background:var(--paper); color:var(--ink); font-family:var(--sans); -webkit-font-smoothing:antialiased;}
-body{padding-bottom:80px;}
-::selection{background:var(--gold); color:var(--paper);}
-.wrap{max-width:1180px; margin:0 auto; padding:0 28px;}
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      padding: 20px;
+      min-height: 100vh;
+    }
 
-header.top{
-  border-bottom:1px solid var(--line); padding:22px 0 18px; position:sticky; top:0; z-index:50;
-  background:rgba(251,248,243,0.92); backdrop-filter: blur(8px);
-}
-header.top .wrap{display:flex; align-items:baseline; justify-content:space-between; gap:20px; flex-wrap:wrap;}
-.brand{display:flex; align-items:baseline; gap:12px; cursor:pointer; transition:opacity .2s ease;}
-.brand .mark{font-family:var(--serif); font-weight:700; font-size:22px; letter-spacing:-0.01em;}
-.brand .mark span{color:var(--rust);}
-.brand .tag{font-family:var(--mono); font-size:11px; letter-spacing:0.06em; text-transform:uppercase; color:#6B6557;}
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    }
 
-nav.top-nav{display:flex; align-items:center; gap:26px; font-family:var(--mono); font-size:12.5px; color:#55503F;}
-nav.top-nav a{text-decoration:none; cursor:pointer; transition:color .2s;}
-nav.top-nav a:hover{color:var(--rust);}
-nav.top-nav .nav-login-btn{
-  border:1px solid var(--line); padding:7px 16px; border-radius:100px; color:var(--moss-deep); font-weight:600;
-  cursor:pointer; background:none; transition:all .2s; font-family:var(--mono); font-size:12.5px;
-}
-nav.top-nav .nav-login-btn:hover{border-color:var(--moss); background:var(--paper-2);}
+    .header {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 30px;
+      text-align: center;
+    }
 
-.hero{padding:70px 0 50px; text-align:center;}
-.hero .eyebrow{font-family:var(--mono); font-size:11.5px; letter-spacing:0.08em; text-transform:uppercase; color:var(--moss-deep); margin-bottom:18px;}
-.hero h1{font-family:var(--serif); font-weight:700; font-size:46px; line-height:1.1; letter-spacing:-0.015em; max-width:780px; margin:0 auto 20px;}
-.hero h1 em{font-style:italic; color:var(--rust); font-weight:600;}
-.hero p.lede{font-size:17px; line-height:1.6; color:#4A453A; max-width:580px; margin:0 auto;}
+    .header h1 {
+      font-size: 28px;
+      margin-bottom: 10px;
+    }
 
-.features{padding:50px 0 80px;}
-.features-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:20px; margin-top:40px;}
+    .header p {
+      opacity: 0.9;
+      font-size: 14px;
+    }
 
-.feature-card{padding:28px; background:var(--paper-2); border:1px solid var(--line); border-radius:4px; cursor:pointer; transition:all .2s ease;}
-.feature-card:hover{border-color:var(--rust); box-shadow:0 8px 16px rgba(194,85,47,0.1); transform:translateY(-2px);}
-.feature-card .icon{font-size:40px; margin-bottom:16px;}
-.feature-card h3{font-family:var(--serif); font-size:20px; font-weight:700; margin-bottom:10px;}
-.feature-card p{font-size:14px; color:#6B6557; line-height:1.5;}
+    .content {
+      padding: 30px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 30px;
+    }
 
-footer{border-top:1px solid var(--line); padding:40px 0 30px; margin-top:80px; text-align:center; font-size:12px; color:#8C8570; font-family:var(--mono);}
+    .section h2 {
+      font-size: 16px;
+      color: #333;
+      margin-bottom: 15px;
+      border-bottom: 2px solid #667eea;
+      padding-bottom: 10px;
+    }
 
-@media (max-width:900px){.features-grid{grid-template-columns:1fr;} .hero h1{font-size:32px;}}
-</style>
+    .upload-area {
+      border: 2px dashed #667eea;
+      border-radius: 8px;
+      padding: 40px;
+      text-align: center;
+      background: #eff6ff;
+      cursor: pointer;
+      transition: all 0.3s;
+      margin-bottom: 15px;
+    }
+
+    .upload-area:hover {
+      border-color: #764ba2;
+      background: #f0e7ff;
+    }
+
+    .upload-area.dragover {
+      border-color: #10b981;
+      background: #ecfdf5;
+    }
+
+    .upload-area p {
+      color: #586069;
+      margin: 10px 0;
+      font-size: 14px;
+    }
+
+    .upload-area strong {
+      color: #667eea;
+      font-size: 16px;
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 150px;
+      padding: 12px;
+      font-family: monospace;
+      font-size: 12px;
+      border: 1px solid #e1e4e8;
+      border-radius: 6px;
+      resize: vertical;
+      margin-bottom: 15px;
+    }
+
+    textarea:focus {
+      outline: none;
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+
+    .button-group {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    button {
+      padding: 12px 20px;
+      font-size: 13px;
+      font-weight: 600;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      font-size: 14px;
+      padding: 13px 20px;
+      grid-column: 1 / -1;
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+
+    .btn-secondary {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+
+    .btn-secondary:hover {
+      background: #e5e7eb;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover:not(:disabled) {
+      background: #059669;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .preview {
+      border: 2px dashed #d1d5db;
+      border-radius: 8px;
+      padding: 20px;
+      background: #fafbfc;
+      min-height: 300px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 15px;
+    }
+
+    .preview img,
+    .preview canvas {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 4px;
+    }
+
+    .preview-placeholder {
+      text-align: center;
+      color: #9ca3af;
+    }
+
+    .preview-placeholder p {
+      margin: 10px 0;
+    }
+
+    .status {
+      padding: 12px 16px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin: 15px 0;
+      display: none;
+      animation: slideIn 0.3s ease;
+    }
+
+    .status.show {
+      display: block;
+    }
+
+    .status.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .status.error {
+      background: #fef2f2;
+      color: #7f1d1d;
+      border: 1px solid #fecaca;
+    }
+
+    .status.info {
+      background: #eff6ff;
+      color: #0c2d6b;
+      border: 1px solid #bfdbfe;
+    }
+
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .info-box {
+      background: #eff6ff;
+      border-left: 4px solid #3b82f6;
+      padding: 12px 15px;
+      border-radius: 4px;
+      font-size: 12px;
+      color: #0c2d6b;
+      line-height: 1.6;
+      margin-bottom: 20px;
+      grid-column: 1 / -1;
+    }
+
+    .download-buttons {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+
+    .loading {
+      display: none;
+      text-align: center;
+    }
+
+    .spinner {
+      border: 3px solid #f3f3f3;
+      border-top: 3px solid #667eea;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 10px auto;
+    }
+
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+      .content {
+        grid-template-columns: 1fr;
+      }
+
+      .header h1 {
+        font-size: 20px;
+      }
+    }
+  </style>
 </head>
 <body>
 
-<header class="top">
-  <div class="wrap">
-    <div class="brand">
-      <div class="mark">Auditoria<span>.</span>Shopee</div>
-      <div class="tag">Dashboard</div>
+<div class="container">
+  <div class="header">
+    <h1>🏷️ Conversor ZPL para Etiquetas</h1>
+    <p>Converta etiquetas ZPL em PNG usando Labelary API - Funciona 100% Online</p>
+  </div>
+
+  <div class="content">
+    <div class="info-box">
+      ✅ Solução simples e funcional. Carregue arquivo ZPL ou cole código. A conversão é feita em tempo real via Labelary.
     </div>
-    <nav class="top-nav">
-      <a href="/">Dashboard</a>
-      <a href="/zpl-converter.html">🏷️ ZPL</a>
-      <a href="/calculadoras-reais.html">Calc</a>
-      <a href="/auditoria_shopee.html">Audit</a>
-      <a href="/perfil.html">Perfil</a>
-      <a href="/login.html" class="nav-login-btn">Entrar</a>
-    </nav>
-  </div>
-</header>
 
-<section class="hero">
-  <div class="wrap">
-    <div class="eyebrow">Bem-vindo</div>
-    <h1>Suas <em>Ferramentas Shopee</em></h1>
-    <p class="lede">Acesso rápido a tudo que você precisa para gerenciar, calcular e converter.</p>
-  </div>
-</section>
-
-<section class="features">
-  <div class="wrap">
-    <div class="features-grid">
+    <!-- UPLOAD ZPL -->
+    <div class="section">
+      <h2>📤 Carregar Arquivo ZPL</h2>
       
-      <div class="feature-card" onclick="location.href='/zpl-converter.html'">
-        <div class="icon">🏷️</div>
-        <h3>ZPL Converter</h3>
-        <p>Converta códigos ZPL para PNG, PDF ou JPG. Perfeito para etiquetas.</p>
+      <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+        <p><strong>Clique ou arraste</strong> seu arquivo</p>
+        <p style="font-size: 12px; opacity: 0.7;">Arquivo .txt com código ZPL</p>
       </div>
 
-      <div class="feature-card" onclick="location.href='/calculadoras-reais.html'">
-        <div class="icon">📊</div>
-        <h3>Calculadoras</h3>
-        <p>Margens, lucro, análise de vendas e métricas Shopee.</p>
+      <input type="file" id="fileInput" accept=".txt,.zpl" onchange="handleFileSelect(event)">
+
+      <div class="button-group">
+        <button class="btn-secondary" onclick="carregarExemplo()">📋 Exemplo</button>
+        <button class="btn-secondary" onclick="limparTudo()">🗑️ Limpar</button>
       </div>
 
-      <div class="feature-card" onclick="location.href='/auditoria_shopee.html'">
-        <div class="icon">🔍</div>
-        <h3>Auditoria</h3>
-        <p>Analise sua loja e performance em detalhes.</p>
+      <div id="status1" class="status"></div>
+    </div>
+
+    <!-- EDITOR ZPL -->
+    <div class="section">
+      <h2>✏️ Ou Cole Código ZPL</h2>
+      
+      <textarea id="zplCode" placeholder="Cole código ZPL aqui...">^XA
+^FO30,30^A0N,60,60^FDAuditório Shopee^FS
+^FO30,110^A0N,35,35^FDProduto Premium^FS
+^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
+^FO30,220^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
+^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
+^XZ</textarea>
+
+      <button class="btn-primary" onclick="converterZPL()">🚀 CONVERTER</button>
+
+      <div id="status2" class="status"></div>
+    </div>
+
+    <!-- PREVIEW -->
+    <div class="section">
+      <h2>👁️ Preview</h2>
+      
+      <div class="preview" id="preview">
+        <div class="preview-placeholder">
+          <p style="font-size: 24px;">🎨</p>
+          <p>Imagem aparecerá aqui</p>
+        </div>
       </div>
 
-      <div class="feature-card" onclick="location.href='/perfil.html'">
-        <div class="icon">👤</div>
-        <h3>Perfil</h3>
-        <p>Gerencie suas configurações e preferências.</p>
+      <div class="download-buttons">
+        <button id="btnDownload" class="btn-success" disabled onclick="baixar()">
+          ⬇️ BAIXAR PNG
+        </button>
+        <button id="btnImprimir" class="btn-secondary" disabled onclick="imprimir()">
+          🖨️ IMPRIMIR
+        </button>
       </div>
+    </div>
 
+    <!-- LOADING -->
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>Convertendo com Labelary...</p>
     </div>
   </div>
-</section>
+</div>
 
-<footer>
-  <div class="wrap">
-    <p>© 2026 Auditoria.Shopee</p>
-  </div>
-</footer>
+<script>
+let imagemAtual = null;
+let zplAtual = null;
+
+// Drag and drop
+const uploadArea = document.getElementById('uploadArea');
+
+['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, preventDefaults, false);
+});
+
+['dragenter', 'dragover'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, () => uploadArea.classList.add('dragover'), false);
+});
+
+['dragleave', 'drop'].forEach(eventName => {
+  uploadArea.addEventListener(eventName, () => uploadArea.classList.remove('dragover'), false);
+});
+
+uploadArea.addEventListener('drop', (e) => {
+  const files = e.dataTransfer.files;
+  document.getElementById('fileInput').files = files;
+  handleFileSelect({ target: { files } });
+}, false);
+
+function preventDefaults(e) {
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function handleFileSelect(event) {
+  const files = event.target.files;
+  if (!files.length) return;
+
+  const file = files[0];
+  const reader = new FileReader();
+
+  reader.onload = (e) => {
+    const zpl = e.target.result;
+    document.getElementById('zplCode').value = zpl;
+    mostrarStatus('✅ Arquivo carregado! Clique em CONVERTER.', 'success', 'status1');
+  };
+
+  reader.readAsText(file);
+}
+
+async function converterZPL() {
+  const zpl = document.getElementById('zplCode').value.trim();
+  
+  if (!zpl) {
+    mostrarStatus('❌ Cole ou carregue um código ZPL', 'error', 'status2');
+    return;
+  }
+
+  const loading = document.getElementById('loading');
+  const btn = document.querySelector('.btn-primary');
+  
+  btn.disabled = true;
+  loading.style.display = 'block';
+  mostrarStatus('⏳ Convertendo...', 'info', 'status2');
+
+  try {
+    // Usar Labelary API diretamente
+    const response = await fetch('https://api.labelary.com/v1/printers/8dpmm/labels/4x6/0/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'text/plain',
+      },
+      body: zpl
+    });
+
+    if (!response.ok) {
+      throw new Error(`Erro ${response.status}: Verifique o código ZPL`);
+    }
+
+    const blob = await response.blob();
+    imagemAtual = URL.createObjectURL(blob);
+    zplAtual = zpl;
+
+    // Mostrar imagem
+    const preview = document.getElementById('preview');
+    preview.innerHTML = `<img src="${imagemAtual}" alt="Etiqueta convertida">`;
+
+    // Habilitar botões
+    document.getElementById('btnDownload').disabled = false;
+    document.getElementById('btnImprimir').disabled = false;
+
+    mostrarStatus('✅ Etiqueta convertida com sucesso!', 'success', 'status2');
+
+  } catch (error) {
+    mostrarStatus(`❌ Erro: ${error.message}`, 'error', 'status2');
+    console.error('Erro:', error);
+  } finally {
+    btn.disabled = false;
+    loading.style.display = 'none';
+  }
+}
+
+function carregarExemplo() {
+  const exemplo = `^XA
+^FO30,30^A0N,60,60^FDAuditório Shopee^FS
+^FO30,110^A0N,35,35^FDProduto Premium^FS
+^FO30,170^A0N,25,25^FDCódigo: 123456789^FS
+^FO30,220^A0N,25,25^FDSKU: SKU-2024-001^FS
+^FO30,270^A0N,25,25^FDPreço: R$ 99,90^FS
+^FO30,320^A0N,20,20^FDValidade: 31/12/2025^FS
+^XZ`;
+  
+  document.getElementById('zplCode').value = exemplo;
+  mostrarStatus('✅ Exemplo carregado!', 'success', 'status2');
+}
+
+function limparTudo() {
+  document.getElementById('zplCode').value = '';
+  document.getElementById('preview').innerHTML = `
+    <div class="preview-placeholder">
+      <p style="font-size: 24px;">🎨</p>
+      <p>Imagem aparecerá aqui</p>
+    </div>
+  `;
+  document.getElementById('btnDownload').disabled = true;
+  document.getElementById('btnImprimir').disabled = true;
+  document.getElementById('fileInput').value = '';
+  imagemAtual = null;
+  zplAtual = null;
+  document.getElementById('status1').classList.remove('show');
+  document.getElementById('status2').classList.remove('show');
+}
+
+function baixar() {
+  if (!imagemAtual) return;
+  
+  const link = document.createElement('a');
+  link.href = imagemAtual;
+  link.download = `etiqueta-${new Date().getTime()}.png`;
+  link.click();
+  
+  mostrarStatus('✅ Download iniciado!', 'success', 'status2');
+}
+
+function imprimir() {
+  if (!imagemAtual) return;
+  
+  const janela = window.open('', '', 'width=800,height=600');
+  janela.document.write(`
+    <html>
+    <head><title>Imprimir Etiqueta</title></head>
+    <body style="margin: 0; padding: 20px; text-align: center;">
+      <img src="${imagemAtual}" style="max-width: 100%; max-height: 100%; border: 1px solid #ccc;">
+      <p style="margin-top: 20px; font-size: 12px; color: #666;">Pressione Ctrl+P para imprimir</p>
+    </body>
+    </html>
+  `);
+  janela.document.close();
+  setTimeout(() => janela.print(), 500);
+  
+  mostrarStatus('🖨️ Janela de impressão aberta', 'success', 'status2');
+}
+
+function mostrarStatus(msg, tipo, id) {
+  const el = document.getElementById(id);
+  el.textContent = msg;
+  el.className = `status show ${tipo}`;
+  
+  if (tipo === 'success') {
+    setTimeout(() => el.classList.remove('show'), 4000);
+  }
+}
+
+// Carregar exemplo ao abrir
+window.addEventListener('load', () => {
+  carregarExemplo();
+});
+</script>
 
 </body>
 </html>
-
